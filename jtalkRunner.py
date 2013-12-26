@@ -49,7 +49,7 @@ def print_code(msg):
 		s += '%04x ' % ord(c)
 	print(s)
 
-def do_synthesis(msg, voice_args, do_play, do_write):
+def do_synthesis(msg, voice_args, do_play, do_write, do_log):
 	msg = nvdajp_predic.convert(msg)
 	s = Mecab_text2mecab(msg, CODE_='utf-8')
 	__print("utf-8: (%s)" % s.decode('utf-8', 'ignore'))
@@ -66,12 +66,22 @@ def do_synthesis(msg, voice_args, do_play, do_write):
 		__print('feature size %d' % a.size)
 		Mecab_print(a, __print, CODE_='utf-8')
 		Mecab_utf8_to_cp932(a)
+		if do_write:
+			w = "_test%d.jt.wav" % count
+		else:
+			w = None
+		if do_log:
+			l = "_test%d.jtlog" % count
+		else:
+			l = None
 		data = libjt_synthesis(a.feature,
 							   a.size,
+							   begin_thres_=32,
+							   end_thres_=32,
 							   fperiod_ = fperiod,
 							   logwrite_ = __print,
-							   jtlogfile_ = "_test%d.jtlog" % count,
-							   jtwavfile_ = "_test%d.jt.wav" % count)
+							   jtlogfile_ = l,
+							   jtwavfile_ = w)
 		if data:
 			__print('data size %d' % len(data))
 			if do_play:
@@ -86,7 +96,7 @@ def do_synthesis(msg, voice_args, do_play, do_write):
 		del a
 	del mf
 
-def main(do_play = False, do_write = True):
+def main(do_play = False, do_write = True, do_log = False):
 	njd = NJD()
 	jpcommon = JPCommon()
 	engine = HTS_Engine()
@@ -113,7 +123,7 @@ def main(do_play = False, do_write = True):
 		]
 	s = msgs[0]
 	print(len(s))
-	do_synthesis(s, voice_args, do_play, do_write)
+	do_synthesis(s, voice_args, do_play, do_write, do_log)
 
 if __name__ == '__main__':
 	main(do_play=False, do_write=True)

@@ -3,7 +3,6 @@ EXPORTS
     jt_save_riff
     jt_speech_ptr
     jt_speech_prepare
-    jt_total_nsample
     jt_version
     jt_buf_clean
     HTS_Engine_initialize

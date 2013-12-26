@@ -63,12 +63,6 @@ void jt_save_riff(char *filename, HTS_Engine *engine)
     fclose(wavfp);
 }
 
-int jt_total_nsample(HTS_Engine * engine)
-{
-	HTS_GStreamSet *gss = &engine->gss;
-	return HTS_GStreamSet_get_total_nsamples(gss);
-}
-
 short *jt_speech_ptr()
 {
 	return m_buf;

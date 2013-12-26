@@ -1,12 +1,6 @@
-# _jtalk_core.py 
+# jtalk_core.py
 # -*- coding: utf-8 -*-
-#A part of NonVisual Desktop Access (NVDA)
-#Copyright (C) 2010-2012 Takuya Nishimoto (NVDA Japanese Team)
-#This file is covered by the GNU General Public License.
-#See the file COPYING for more details.
-
-# Japanese speech engine wrapper for Open JTalk
-# http://ja.nishimotz.com/project:libopenjtalk
+# 2013 Takuya Nishimoto
 
 import codecs
 import re
@@ -214,21 +208,6 @@ class JPCommon(Structure):
 		]
 JPCommon_ptr = POINTER(JPCommon)
 
-# for debug
-def JPC_label_print(feature, size, logwrite_):
-	if logwrite_ is None: return
-	if feature is None or size is None: 
-		logwrite_( "JPC_label_print size: 0" )
-		return
-	s2 = "JPC_label_print size: %d\n" % size
-	for i in xrange(0, size):
-		s = string_at(feature[i])
-		if s:
-			s2 += "%s\n" % s
-		else:
-			s2 += "[None]"
-	logwrite_(s2)
-
 #############################################
 
 FNLEN = 1000
@@ -317,7 +296,19 @@ def libjt_clear():
 	libjt.JPCommon_clear(jpcommon)
 	libjt.HTS_Engine_clear(engine)
 
-def libjt_synthesis(feature, size, fperiod_=80, feed_func_=None, is_speaking_func_=None, thres_=32, thres2_=32, level_=32767, logwrite_=None, lf0_offset_=0.0, lf0_amp_=1.0, jtlogfile_=None, jtwavfile_=None):
+def libjt_synthesis(feature,
+					size,
+					fperiod_=80,
+					feed_func_=None,
+					is_speaking_func_=None,
+					begin_thres_=32,
+					end_thres_=32,
+					level_=32767,
+					logwrite_=None,
+					lf0_offset_=0.0,
+					lf0_amp_=1.0,
+					jtlogfile_=None,
+					jtwavfile_=None):
 	if feature is None or size is None: return None
 	if logwrite_ : logwrite_('libjt_synthesis start.')
 	libjt.HTS_Engine_set_fperiod(engine, fperiod_)
@@ -350,17 +341,11 @@ def libjt_synthesis(feature, size, fperiod_=80, feed_func_=None, is_speaking_fun
 			return None
 		gsp = engine.gss.gspeech
 		gtn = engine.gss.total_nsample
-		ns = libjt.jt_speech_prepare(gsp, gtn, thres_, thres2_, level_)
+		ns = libjt.jt_speech_prepare(gsp, gtn, begin_thres_, end_thres_, level_)
 		speech_ptr = libjt.jt_speech_ptr()
 		byte_count = ns * sizeof(c_short)
 		buf = string_at(speech_ptr, byte_count)
-		if feed_func_: feed_func_(buf)
-		if jtwavfile_:
-			import wave
-			w = wave.Wave_write("_" + jtwavfile_)
-			w.setparams( (1, 2, 48000, ns,
-						  'NONE', 'not compressed') )
-			w.writeframes(buf)
-			w.close()
+		if feed_func_:
+			feed_func_(buf)
 	if logwrite_ : logwrite_('libjt_synthesis done.')
 	return buf
