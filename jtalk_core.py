@@ -287,7 +287,7 @@ def libjt_initialize(JT_DLL, **args):
 	libjt.HTS_Engine_synthesize_from_strings.argtypes = [HTS_Engine_ptr, c_char_p_p, c_size_t]
 	libjt.HTS_Engine_synthesize_from_strings.restype = hts_boolean
 
-	libjt.jt_speech_prepare.argtypes = [HTS_Engine_ptr, c_short, c_short, c_short]
+	libjt.jt_speech_prepare.argtypes = [c_double_p, c_size_t, c_short, c_short, c_short]
 	libjt.jt_speech_prepare.restype = c_int
 	libjt.jt_speech_ptr.argtypes = []
 	libjt.jt_speech_ptr.restype = c_short_p
@@ -348,10 +348,19 @@ def libjt_synthesis(feature, size, fperiod_=80, feed_func_=None, is_speaking_fun
 		if is_speaking_func_ and not is_speaking_func_() :
 			libjt_refresh()
 			return None
-		ns = libjt.jt_speech_prepare(engine, thres_, thres2_, level_)
+		gsp = engine.gss.gspeech
+		gtn = engine.gss.total_nsample
+		ns = libjt.jt_speech_prepare(gsp, gtn, thres_, thres2_, level_)
 		speech_ptr = libjt.jt_speech_ptr()
 		byte_count = ns * sizeof(c_short)
 		buf = string_at(speech_ptr, byte_count)
 		if feed_func_: feed_func_(buf)
+		if jtwavfile_:
+			import wave
+			w = wave.Wave_write("_" + jtwavfile_)
+			w.setparams( (1, 2, 48000, ns,
+						  'NONE', 'not compressed') )
+			w.writeframes(buf)
+			w.close()
 	if logwrite_ : logwrite_('libjt_synthesis done.')
 	return buf

@@ -58,7 +58,6 @@ def do_synthesis(msg, voice_args, do_play, do_write):
 	Mecab_print(mf, __print, CODE_='utf-8')
 	Mecab_correctFeatures(mf, CODE_='utf-8')
 	fperiod = voice_args['fperiod']
-	data_array = []
 	ar = Mecab_splitFeatures(mf, CODE_='utf-8')
 	__print('array size %d' % len(ar))
 	count = 0
@@ -75,23 +74,17 @@ def do_synthesis(msg, voice_args, do_play, do_write):
 							   jtwavfile_ = "_test%d.jt.wav" % count)
 		if data:
 			__print('data size %d' % len(data))
-			data_array.append(data)
+			if do_play:
+				pa_play(data, samp_rate = voice_args['samp_rate'])
+			if do_write:
+				w = wave.Wave_write("_test%d.wav" % count)
+				w.setparams( (1, 2, voice_args['samp_rate'], len(data)/2,
+							  'NONE', 'not compressed') )
+				w.writeframes(data)
+				w.close()
 		libjt_refresh()
 		del a
 	del mf
-	count = 0
-	for data in data_array:
-		count += 1
-		if not data:
-			continue
-		if do_play:
-			pa_play(data, samp_rate = voice_args['samp_rate'])
-		if do_write:
-			w = wave.Wave_write("_test%d.wav" % count)
-			w.setparams( (1, 2, voice_args['samp_rate'], len(data)/2,
-						  'NONE', 'not compressed') )
-			w.writeframes(data)
-			w.close()
 
 def main(do_play = False, do_write = True):
 	njd = NJD()
@@ -116,12 +109,9 @@ def main(do_play = False, do_write = True):
 
 	msgs = [
 		'100.25ドル。ウェルカムトゥー nvda テンキーのinsertキーと、メインのinsertキーの両方が、nvdaキーとして動作します',
-		'You Tube i Tunes Store sjis co jp',
-		'十五絡脈病証。', # nvdajp ticket 29828
-		'マーク。まーく。', # nvdajp ticket 29859
-		'∫⣿♪ ウェルカムトゥー 鈹噯呃瘂蹻脘鑱涿癃 十五絡脈病証 マーク。まーく。ふぅー。ふぅぅぅぅぅー。ぅー。ぅぅー。',
+		'マーク。まーく。',
 		]
-	s = msgs[3]
+	s = msgs[0]
 	print(len(s))
 	do_synthesis(s, voice_args, do_play, do_write)
 

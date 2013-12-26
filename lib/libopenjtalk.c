@@ -130,20 +130,17 @@ static void trim_silence(short begin_thres, short end_thres)
 
 /* returns: new sample count */
 int jt_speech_prepare(
-	HTS_Engine * engine,
+	double * gsp,
+	size_t ns,
 	short begin_thres,
 	short end_thres,
 	short level)
 {
-	int ns, i;
-	HTS_GStreamSet *gss;
+	size_t i;
+	double x;
+	short temp;
 
 	// prepare buffer
-	gss = &engine->gss;
-	if (gss == NULL) {
-		return 0;
-	}
-	ns = HTS_GStreamSet_get_total_nsamples(gss);
 	if (m_buf_size < ns) {
 		m_buf_size = ns;
 		if (m_buf == NULL) {
@@ -160,16 +157,23 @@ int jt_speech_prepare(
 
 	// double to short
 	for (i = 0; i < ns; i++) {
-		m_buf[i] = (short)HTS_GStreamSet_get_speech(gss, i);
+		x = gsp[i];
+		if (x > 32767.0)
+			temp = 32767;
+		else if (x < -32768.0)
+			temp = -32768;
+		else
+			temp = (short) x;
+		m_buf[i] = temp;
 	}
 	m_samples = ns;
 
-	//trim_silence(begin_thres, end_thres);
-	//speech_normalize(level);
+	trim_silence(begin_thres, end_thres);
+	speech_normalize(level);
 	return m_samples;
 }
 
-int jt_buf_clean()
+void jt_buf_clean()
 {
 	if (m_buf) {
 		free(m_buf);
