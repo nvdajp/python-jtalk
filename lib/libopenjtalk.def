@@ -1,0 +1,8 @@
+EXPORTS
+    jt_save_logs @249
+    jt_save_riff @250
+    jt_speech_normalize @251
+    jt_speech_ptr @252
+    jt_total_nsample @253
+    jt_trim_silence @254
+    jt_version @255

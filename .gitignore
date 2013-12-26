@@ -1,0 +1,12 @@
+htsengineapi
+libopenjtalk
+dic
+lite
+m001
+mei
+*~
+lib/*.lib
+lib/*.dll
+lib/*.exp
+lib/*.obj
+lib/libopenjtalk-timestamp.h
