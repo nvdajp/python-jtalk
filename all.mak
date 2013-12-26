@@ -41,6 +41,7 @@ all:
 	cd lib
 	nmake /f Makefile.mak
 	cd ..
+	copy lib\libopenjtalk.dll .
 
 clean:
 	nmake /f hts.mak clean
