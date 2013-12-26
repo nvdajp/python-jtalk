@@ -1,50 +1,7 @@
-/* libopenjtalk.c    
- * based on ../bin/open_jtalk.c
- * by Takuya Nishimoto
- * since 2010-06-27    
- * Notice: some functions in this file is dummy 
- * (to export functions inside the *.a)
+/* libopenjtalk.c
+ * for nvdajp & Open JTalk 1.07
+ * 2013-12-26 by Takuya Nishimoto
  */
-
-/* ----------------------------------------------------------------- */
-/*           The HMM-Based Speech Synthesis System (HTS)             */
-/*           Open JTalk developed by HTS Working Group               */
-/*           http://open-jtalk.sourceforge.net/                      */
-/* ----------------------------------------------------------------- */
-/*                                                                   */
-/*  Copyright (c) 2008-2010  Nagoya Institute of Technology          */
-/*                           Department of Computer Science          */
-/*                                                                   */
-/* All rights reserved.                                              */
-/*                                                                   */
-/* Redistribution and use in source and binary forms, with or        */
-/* without modification, are permitted provided that the following   */
-/* conditions are met:                                               */
-/*                                                                   */
-/* - Redistributions of source code must retain the above copyright  */
-/*   notice, this list of conditions and the following disclaimer.   */
-/* - Redistributions in binary form must reproduce the above         */
-/*   copyright notice, this list of conditions and the following     */
-/*   disclaimer in the documentation and/or other materials provided */
-/*   with the distribution.                                          */
-/* - Neither the name of the HTS working group nor the names of its  */
-/*   contributors may be used to endorse or promote products derived */
-/*   from this software without specific prior written permission.   */
-/*                                                                   */
-/* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND            */
-/* CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,       */
-/* INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF          */
-/* MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE          */
-/* DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS */
-/* BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,          */
-/* EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED   */
-/* TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,     */
-/* DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON */
-/* ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,   */
-/* OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY    */
-/* OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE           */
-/* POSSIBILITY OF SUCH DAMAGE.                                       */
-/* ----------------------------------------------------------------- */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -70,19 +27,13 @@
 
 #include "libopenjtalk-timestamp.h"
 
+static short *m_buf = NULL;
+static size_t m_samples = 0;
+static size_t m_buf_size = 0;
+
 char *jt_version()
 {
     return JT_VERSION;
-}
-
-void *jt_malloc(unsigned int size)
-{
-    return (void *)malloc(size);
-}
-
-void jt_free(void *ptr)
-{
-    free(ptr);
 }
 
 void jt_save_logs(char *filename, HTS_Engine *engine, NJD *njd)
@@ -114,77 +65,116 @@ void jt_save_riff(char *filename, HTS_Engine *engine)
 
 int jt_total_nsample(HTS_Engine * engine)
 {
-   HTS_GStreamSet *gss = &engine->gss;
-   return HTS_GStreamSet_get_total_nsamples(gss);
+	HTS_GStreamSet *gss = &engine->gss;
+	return HTS_GStreamSet_get_total_nsamples(gss);
 }
 
-double *jt_speech_ptr(HTS_Engine * engine)
+short *jt_speech_ptr()
 {
-   HTS_GStreamSet *gss = &engine->gss;
-   return gss->gspeech;
+	return m_buf;
 }
 
-/* if nsample < 0 then use total_nsample */
-void jt_speech_normalize(HTS_Engine * engine, short level, int nsample)
+static void speech_normalize(short level)
 {
-	int ns, i;
-	double *data;
+	int i;
 	short max = 0;
 	const int MAX_LEVEL = 32767;
 	level = abs(level);
-	if (nsample < 0) {
-		ns = jt_total_nsample(engine);
-	} else {
-		ns = nsample;
-	}
-	data = jt_speech_ptr(engine);
-	for (i = 0; i < ns; i++) {
+	for (i = 0; i < m_samples; i++) {
 		int a;
-		a = abs(data[i]);
+		a = abs(m_buf[i]);
 		if (max < a) max = a;
 	}
-	for (i = 0; i < ns; i++) {
+	for (i = 0; i < m_samples; i++) {
 		float f, g;
-		f = (float)data[i];
+		f = (float)m_buf[i];
 		g = f * level / max;
 		if (g > MAX_LEVEL) {
-			data[i] = MAX_LEVEL;
+			m_buf[i] = MAX_LEVEL;
 		} else if (g < -MAX_LEVEL) {
-			data[i] = -MAX_LEVEL;
+			m_buf[i] = -MAX_LEVEL;
 		} else {
-			data[i] = (short)g;
+			m_buf[i] = (short)g;
 		}
 	}
 }
 
-/* returns: new sample count */
-int jt_trim_silence(HTS_Engine * engine, short begin_thres, short end_thres)
+/* apply to m_buf[] */
+static void trim_silence(short begin_thres, short end_thres)
 {
-	int ns, i, size;
-	double *data;
+	int i, size;
 	int begin_pos = 0, end_pos = 0;
-	ns = jt_total_nsample(engine);
-	data = jt_speech_ptr(engine);
 	if (begin_thres >= 0) {
 		begin_thres = abs(begin_thres);
-		for (i = 0; i < ns; i++) {
-			if (abs(data[i]) > begin_thres) {
+		for (i = 0; i < m_samples; i++) {
+			if (abs(m_buf[i]) > begin_thres) {
 				begin_pos = i;
 				break;
 			}
 		}
 	}
-	end_pos = ns - 1;
+	end_pos = m_samples - 1;
 	if (end_thres >= 0) {
 		end_thres = abs(end_thres);
-		for (i = ns - 1; i > begin_pos; i--) {
-			if (abs(data[i]) > end_thres) {
+		for (i = m_samples - 1; i > begin_pos; i--) {
+			if (abs(m_buf[i]) > end_thres) {
 				end_pos = i;
 				break;
 			}
 		}
 	}
 	size = end_pos - begin_pos + 1;
-	memmove(data, &(data[begin_pos]), sizeof(short) * size);
-	return size;
+	memmove(m_buf, &(m_buf[begin_pos]), sizeof(short) * size);
+	m_samples = size;
+}
+
+/* returns: new sample count */
+int jt_speech_prepare(
+	HTS_Engine * engine,
+	short begin_thres,
+	short end_thres,
+	short level)
+{
+	int ns, i;
+	HTS_GStreamSet *gss;
+
+	// prepare buffer
+	gss = &engine->gss;
+	if (gss == NULL) {
+		return 0;
+	}
+	ns = HTS_GStreamSet_get_total_nsamples(gss);
+	if (m_buf_size < ns) {
+		m_buf_size = ns;
+		if (m_buf == NULL) {
+			m_buf = (short *)malloc(m_buf_size * sizeof(short));
+		} else {
+			m_buf = (short *)realloc(m_buf, m_buf_size * sizeof(short));
+		}
+	}
+	if (m_buf == NULL) {
+		m_samples = 0;
+		m_buf_size = 0;
+		return 0;
+	}
+
+	// double to short
+	for (i = 0; i < ns; i++) {
+		m_buf[i] = (short)HTS_GStreamSet_get_speech(gss, i);
+	}
+	m_samples = ns;
+
+	//trim_silence(begin_thres, end_thres);
+	//speech_normalize(level);
+	return m_samples;
+}
+
+int jt_buf_clean()
+{
+	if (m_buf) {
+		free(m_buf);
+		m_buf = NULL;
+		m_samples = 0;
+		m_buf_size = 0;
+	}
 }

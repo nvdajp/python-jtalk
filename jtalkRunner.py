@@ -49,7 +49,7 @@ def print_code(msg):
 		s += '%04x ' % ord(c)
 	print(s)
 
-def do_synthesis(msg, voice_args, do_play):
+def do_synthesis(msg, voice_args, do_play, do_write):
 	msg = nvdajp_predic.convert(msg)
 	s = Mecab_text2mecab(msg, CODE_='utf-8')
 	__print("utf-8: (%s)" % s.decode('utf-8', 'ignore'))
@@ -61,30 +61,39 @@ def do_synthesis(msg, voice_args, do_play):
 	data_array = []
 	ar = Mecab_splitFeatures(mf, CODE_='utf-8')
 	__print('array size %d' % len(ar))
+	count = 0
 	for a in ar:
+		count += 1
 		__print('feature size %d' % a.size)
 		Mecab_print(a, __print, CODE_='utf-8')
 		Mecab_utf8_to_cp932(a)
 		data = libjt_synthesis(a.feature,
 							   a.size,
 							   fperiod_ = fperiod,
-							   logwrite_ = __print)
+							   logwrite_ = __print,
+							   jtlogfile_ = "_test%d.jtlog" % count,
+							   jtwavfile_ = "_test%d.jt.wav" % count)
 		if data:
 			__print('data size %d' % len(data))
 			data_array.append(data)
 		libjt_refresh()
 		del a
 	del mf
+	count = 0
 	for data in data_array:
-		if data and do_play:
+		count += 1
+		if not data:
+			continue
+		if do_play:
 			pa_play(data, samp_rate = voice_args['samp_rate'])
-			w = wave.Wave_write("_test.wav")
+		if do_write:
+			w = wave.Wave_write("_test%d.wav" % count)
 			w.setparams( (1, 2, voice_args['samp_rate'], len(data)/2,
 						  'NONE', 'not compressed') )
 			w.writeframes(data)
 			w.close()
 
-def main(do_play = True):
+def main(do_play = False, do_write = True):
 	njd = NJD()
 	jpcommon = JPCommon()
 	engine = HTS_Engine()
@@ -112,12 +121,12 @@ def main(do_play = True):
 		'マーク。まーく。', # nvdajp ticket 29859
 		'∫⣿♪ ウェルカムトゥー 鈹噯呃瘂蹻脘鑱涿癃 十五絡脈病証 マーク。まーく。ふぅー。ふぅぅぅぅぅー。ぅー。ぅぅー。',
 		]
-	s = msgs[1]
+	s = msgs[3]
 	print(len(s))
-	do_synthesis(s, voice_args, do_play)
+	do_synthesis(s, voice_args, do_play, do_write)
 
 if __name__ == '__main__':
-	main(do_play=True)
+	main(do_play=False, do_write=True)
 	#prof = cProfile.run("main(do_play=True)", '_cprof.prof')
 	#p = pstats.Stats('_cprof.prof')
 	#p.strip_dirs()

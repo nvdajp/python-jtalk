@@ -287,14 +287,12 @@ def libjt_initialize(JT_DLL, **args):
 	libjt.HTS_Engine_synthesize_from_strings.argtypes = [HTS_Engine_ptr, c_char_p_p, c_size_t]
 	libjt.HTS_Engine_synthesize_from_strings.restype = hts_boolean
 
-	libjt.jt_total_nsample.argtypes = [HTS_Engine_ptr]
-	libjt.jt_speech_ptr.argtypes = [HTS_Engine_ptr]
+	libjt.jt_speech_prepare.argtypes = [HTS_Engine_ptr, c_short, c_short, c_short]
+	libjt.jt_speech_prepare.restype = c_int
+	libjt.jt_speech_ptr.argtypes = []
 	libjt.jt_speech_ptr.restype = c_short_p
 	libjt.jt_save_logs.argtypes = [c_char_p, HTS_Engine_ptr, NJD_ptr]
 	libjt.jt_save_riff.argtypes = [c_char_p, HTS_Engine_ptr]
-	libjt.jt_speech_normalize.argtypes = [HTS_Engine_ptr, c_short, c_int]
-	libjt.jt_trim_silence.argtypes = [HTS_Engine_ptr, c_short, c_short]
-	libjt.jt_trim_silence.restype = c_int
 
 	# initialize
 
@@ -302,10 +300,6 @@ def libjt_initialize(JT_DLL, **args):
 	libjt.JPCommon_initialize(jpcommon)
 	libjt.HTS_Engine_initialize(engine)
 	
-	#libjt.HTS_Engine_set_sampling_frequency(engine, args['samp_rate']) # 16000
-	#libjt.HTS_Engine_set_fperiod(engine, args['fperiod']) # if samping-rate is 16000: 80(point=5ms) frame period
-	#libjt.HTS_Engine_set_audio_buff_size(engine, 1600)
-
 def libjt_load(VOICE):
 	global libjt, engine
 	fn_buf = create_string_buffer(VOICE.encode('mbcs'))
@@ -323,7 +317,7 @@ def libjt_clear():
 	libjt.JPCommon_clear(jpcommon)
 	libjt.HTS_Engine_clear(engine)
 
-def libjt_synthesis(feature, size, fperiod_=80, feed_func_=None, is_speaking_func_=None, thres_=32, thres2_=32, level_=32767, logwrite_=None, lf0_offset_=0.0, lf0_amp_=1.0):
+def libjt_synthesis(feature, size, fperiod_=80, feed_func_=None, is_speaking_func_=None, thres_=32, thres2_=32, level_=32767, logwrite_=None, lf0_offset_=0.0, lf0_amp_=1.0, jtlogfile_=None, jtwavfile_=None):
 	if feature is None or size is None: return None
 	if logwrite_ : logwrite_('libjt_synthesis start.')
 	libjt.HTS_Engine_set_fperiod(engine, fperiod_)
@@ -343,17 +337,21 @@ def libjt_synthesis(feature, size, fperiod_=80, feed_func_=None, is_speaking_fun
 	buf = None
 	if s > 2:
 		f = libjt.JPCommon_get_label_feature(jpcommon)
-		libjt.HTS_Engine_synthesize_from_strings(engine, f, s)
+		ret = libjt.HTS_Engine_synthesize_from_strings(engine, f, s)
+		if ord(ret) == 0:
+			libjt_refresh()
+			return None
+		if jtlogfile_:
+			libjt.jt_save_logs(jtlogfile_, engine, njd)
+		if jtwavfile_:
+			libjt.jt_save_riff(jtwavfile_, engine)
 		if is_speaking_func_ and not is_speaking_func_() :
 			libjt_refresh()
 			return None
-
-		total_nsample = libjt.jt_trim_silence(engine, thres_, thres2_)
-		libjt.jt_speech_normalize(engine, level_, total_nsample)
-		speech_ptr = libjt.jt_speech_ptr(engine)
-		byte_count = total_nsample * sizeof(c_short)
+		ns = libjt.jt_speech_prepare(engine, thres_, thres2_, level_)
+		speech_ptr = libjt.jt_speech_ptr()
+		byte_count = ns * sizeof(c_short)
 		buf = string_at(speech_ptr, byte_count)
 		if feed_func_: feed_func_(buf)
-		#libjt.jt_save_logs("_logfile", engine, njd)
 	if logwrite_ : logwrite_('libjt_synthesis done.')
 	return buf
