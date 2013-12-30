@@ -224,7 +224,7 @@ def libjt_version():
 	if libjt is None: return "libjt version none"
 	return libjt.jt_version()
 
-def libjt_initialize(JT_DLL, **args):
+def libjt_initialize(JT_DLL):
 	global libjt, njd, jpcommon, engine
 	
 	if libjt is None: libjt = cdll.LoadLibrary(JT_DLL.encode('mbcs'))

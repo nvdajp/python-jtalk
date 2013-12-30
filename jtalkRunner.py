@@ -23,7 +23,19 @@ import nvdajp_predic
 JT_DIR = r'.'
 JT_LIB_DIR = r'.'
 JT_DLL = os.path.join(JT_LIB_DIR, 'libopenjtalk.dll')
-VOICE_FILE = os.path.join(JT_DIR, 'm001', 'm001.htsvoice')
+
+voices = [
+	{
+		"id": "V1",
+		"name": "m001",
+		"lang":"ja",
+		"samp_rate": 48000,
+		"fperiod": 240,
+		"lf0_base":5.0,
+		"speaker_attenuation":1.0,
+		"htsvoice": os.path.join(JT_DIR, 'm001', 'm001.htsvoice')
+		},
+	]
 
 def pa_play(data, samp_rate = 16000):
 	p = pyaudio.PyAudio()
@@ -100,20 +112,9 @@ def main(do_play = False, do_write = True, do_log = False):
 	njd = NJD()
 	jpcommon = JPCommon()
 	engine = HTS_Engine()
-	voice_args = {
-		"id": "V1",
-		"name": "m001",
-		"lang":"ja",
-		"samp_rate": 48000,
-		"fperiod": 240,
-		"alpha": 0.55,
-		"lf0_base":5.0,
-		"use_lpf":1,
-		"speaker_attenuation":1.0,
-		"htsvoice": VOICE_FILE
-		}
-	libjt_initialize(JT_DLL, **voice_args)
-	libjt_load(voice_args['htsvoice'])
+	libjt_initialize(JT_DLL)
+	v = voices[0]
+	libjt_load(v['htsvoice'])
 	Mecab_initialize(__print, JT_DIR)
 	nvdajp_predic.setup()
 
@@ -123,7 +124,7 @@ def main(do_play = False, do_write = True, do_log = False):
 		]
 	s = msgs[0]
 	print(len(s))
-	do_synthesis(s, voice_args, do_play, do_write, do_log)
+	do_synthesis(s, v, do_play, do_write, do_log)
 
 if __name__ == '__main__':
 	main(do_play=False, do_write=True)
