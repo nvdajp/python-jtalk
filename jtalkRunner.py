@@ -25,16 +25,38 @@ JT_LIB_DIR = r'.'
 JT_DLL = os.path.join(JT_LIB_DIR, 'libopenjtalk.dll')
 
 voices = [
-	{
-		"id": "V1",
-		"name": "m001",
-		"lang":"ja",
-		"samp_rate": 48000,
-		"fperiod": 240,
-		"lf0_base":5.0,
-		"speaker_attenuation":1.0,
-		"htsvoice": os.path.join(JT_DIR, 'm001', 'm001.htsvoice')
-		},
+	{"id": "V1",
+	 "name": "m1",
+	 "lang":"ja",
+	 "samp_rate": 48000,
+	 "fperiod": 240,
+	 "lf0_base":5.0,
+	 "speaker_attenuation":1.0,
+	 "htsvoice": os.path.join(JT_DIR, 'm001', 'm001.htsvoice'),
+	 "espeak_variant": "max",
+	 },
+	{"id": "V2",
+	 "name": "mei",
+	 "lang":"ja",
+	 "samp_rate": 48000,
+	 "fperiod": 240,
+	 "lf0_base": 5.86,
+	 "pitch_bias": -10,
+	 "speaker_attenuation": 0.5,
+	 "htsvoice": os.path.join(JT_DIR, 'mei', 'mei_normal.htsvoice'),
+	 "espeak_variant": "f1",
+	 },
+	{"id": "V3",
+	 "name": "lite",
+	 "lang":"ja",
+	 "samp_rate": 16000,
+	 "fperiod": 80,
+	 "lf0_base": 5.0,
+	 "pitch_bias": 0,
+	 "speaker_attenuation": 1.0,
+	 "htsvoice": os.path.join(JT_DIR, 'lite', 'voice.htsvoice'),
+	 "espeak_variant": "max",
+	 },
 	]
 
 def pa_play(data, samp_rate = 16000):
@@ -61,22 +83,21 @@ def print_code(msg):
 		s += '%04x ' % ord(c)
 	print(s)
 
-def do_synthesis(msg, voice_args, do_play, do_write, do_log):
+def do_synthesis(msg, voice_args, do_play, do_write, do_log, fperiod):
 	msg = nvdajp_predic.convert(msg)
-	s = Mecab_text2mecab(msg, CODE_='utf-8')
+	s = Mecab_text2mecab(msg)
 	__print("utf-8: (%s)" % s.decode('utf-8', 'ignore'))
 	mf = MecabFeatures()
 	Mecab_analysis(s, mf)
-	Mecab_print(mf, __print, CODE_='utf-8')
-	Mecab_correctFeatures(mf, CODE_='utf-8')
-	fperiod = voice_args['fperiod']
-	ar = Mecab_splitFeatures(mf, CODE_='utf-8')
+	Mecab_print(mf, __print)
+	Mecab_correctFeatures(mf)
+	ar = Mecab_splitFeatures(mf)
 	__print('array size %d' % len(ar))
 	count = 0
 	for a in ar:
 		count += 1
 		__print('feature size %d' % a.size)
-		Mecab_print(a, __print, CODE_='utf-8')
+		Mecab_print(a, __print)
 		Mecab_utf8_to_cp932(a)
 		if do_write:
 			w = "_test%d.jt.wav" % count
@@ -113,7 +134,7 @@ def main(do_play = False, do_write = True, do_log = False):
 	jpcommon = JPCommon()
 	engine = HTS_Engine()
 	libjt_initialize(JT_DLL)
-	v = voices[0]
+	v = voices[1]
 	libjt_load(v['htsvoice'])
 	Mecab_initialize(__print, JT_DIR)
 	nvdajp_predic.setup()
@@ -123,8 +144,8 @@ def main(do_play = False, do_write = True, do_log = False):
 		'マーク。まーく。',
 		]
 	s = msgs[0]
-	print(len(s))
-	do_synthesis(s, v, do_play, do_write, do_log)
+	fperiod = v['fperiod']
+	do_synthesis(s, v, do_play, do_write, do_log, fperiod)
 
 if __name__ == '__main__':
 	main(do_play=False, do_write=True)
