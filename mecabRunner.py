@@ -36,7 +36,7 @@ def Mecab_get_reading(mf, CODE_=CODE):
 	return (reading, braille.rstrip(r" /"))
 
 def get_reading(msg):
-	s = Mecab_text2mecab(msg)
+	s = text2mecab(msg)
 	mf = MecabFeatures()
 	Mecab_analysis(s, mf)
 	Mecab_correctFeatures(mf)

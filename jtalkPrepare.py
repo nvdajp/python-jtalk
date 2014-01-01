@@ -1,7 +1,6 @@
-# _nvdajp_predic.py 
+# nvdajp_predic.py
 # -*- coding: utf-8 -*-
-# A part of speech engine nvdajp_jtalk
-# Copyright (C) 2010-2011 Takuya Nishimoto (nishimotz.com)
+# for python-jtalk
 
 import re
 
@@ -13,6 +12,7 @@ def setup():
 		predic = load()
 
 def convert(msg):
+	setup()
 	for p in predic:
 		try:
 			msg = re.sub(p[0], p[1], msg)

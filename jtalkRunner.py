@@ -17,8 +17,14 @@ import time
 import pyaudio
 import cProfile
 import pstats
-from jtalk_core import *
-import nvdajp_predic 
+from jtalkCore import *
+import jtalkPrepare
+
+#JT_DIR = unicode(os.path.dirname(__file__), 'mbcs')
+#if hasattr(sys,'frozen'):
+#	d = os.path.join(os.getcwdu(), 'synthDrivers', 'jtalk')
+#	if os.path.isdir(d):
+#		JT_DIR = d
 
 JT_DIR = r'.'
 JT_LIB_DIR = r'.'
@@ -84,8 +90,8 @@ def print_code(msg):
 	print(s)
 
 def do_synthesis(msg, voice_args, do_play, do_write, do_log, fperiod):
-	msg = nvdajp_predic.convert(msg)
-	s = Mecab_text2mecab(msg)
+	msg = jtalkPrepare.convert(msg)
+	s = text2mecab(msg)
 	__print("utf-8: (%s)" % s.decode('utf-8', 'ignore'))
 	mf = MecabFeatures()
 	Mecab_analysis(s, mf)
@@ -137,7 +143,6 @@ def main(do_play = False, do_write = True, do_log = False):
 	v = voices[1]
 	libjt_load(v['htsvoice'])
 	Mecab_initialize(__print, JT_DIR)
-	nvdajp_predic.setup()
 
 	msgs = [
 		'100.25ドル。ウェルカムトゥー nvda テンキーのinsertキーと、メインのinsertキーの両方が、nvdaキーとして動作します',
