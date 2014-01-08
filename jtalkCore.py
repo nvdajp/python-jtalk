@@ -263,8 +263,8 @@ def libjt_initialize(JT_DLL):
 	libjt.HTS_Engine_get_generated_speech.argtypes = [HTS_Engine_ptr, c_int]
 	libjt.HTS_Engine_clear.argtypes = [HTS_Engine_ptr]
 	libjt.HTS_Engine_refresh.argtypes = [HTS_Engine_ptr]
-	libjt.HTS_Engine_synthesize_from_strings.argtypes = [HTS_Engine_ptr, c_char_p_p, c_size_t]
-	libjt.HTS_Engine_synthesize_from_strings.restype = hts_boolean
+	libjt.HTS_Engine_synthesize_from_strings_ex.argtypes = [HTS_Engine_ptr, c_char_p_p, c_size_t, c_double, c_double]
+	libjt.HTS_Engine_synthesize_from_strings_ex.restype = hts_boolean
 
 	libjt.jt_speech_prepare.argtypes = [c_double_p, c_size_t, c_short, c_short, c_short]
 	libjt.jt_speech_prepare.restype = c_int
@@ -328,7 +328,7 @@ def libjt_synthesis(feature,
 	buf = None
 	if s > 2:
 		f = libjt.JPCommon_get_label_feature(jpcommon)
-		ret = libjt.HTS_Engine_synthesize_from_strings(engine, f, s)
+		ret = libjt.HTS_Engine_synthesize_from_strings_ex(engine, f, s, lf0_offset_, lf0_amp_)
 		if ord(ret) == 0:
 			libjt_refresh()
 			return None

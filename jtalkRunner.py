@@ -88,7 +88,7 @@ def print_code(msg):
 		s += '%04x ' % ord(c)
 	print(s)
 
-def do_synthesis(msg, voice_args, do_play, do_write, do_log, fperiod):
+def do_synthesis(msg, voice_args, do_play, do_write, do_log, fperiod, pitch=50, inflection=50, vol=50):
 	msg = jtalkPrepare.convert(msg)
 	s = text2mecab(msg)
 	__print("utf-8: (%s)" % s.decode('utf-8', 'ignore'))
@@ -98,6 +98,11 @@ def do_synthesis(msg, voice_args, do_play, do_write, do_log, fperiod):
 	Mecab_correctFeatures(mf)
 	ar = Mecab_splitFeatures(mf)
 	__print('array size %d' % len(ar))
+	max_level = int(326.67 * int(vol) + 100) # 100..32767
+	level =	int(max_level * voice_args['speaker_attenuation'])
+	lf0_amp = 0.020 * inflection # 50 = original range
+	ls = 0.015 * (pitch - 50.0 + voice_args['pitch_bias']) # 50 = no shift
+	lf0_offset = ls + voice_args['lf0_base'] * (1 - lf0_amp)
 	count = 0
 	for a in ar:
 		count += 1
@@ -116,7 +121,10 @@ def do_synthesis(msg, voice_args, do_play, do_write, do_log, fperiod):
 							   a.size,
 							   begin_thres_=32,
 							   end_thres_=32,
+							   level_=level,
 							   fperiod_ = fperiod,
+							   lf0_offset_ = lf0_offset,
+							   lf0_amp_ = lf0_amp,
 							   logwrite_ = __print,
 							   jtlogfile_ = l,
 							   jtwavfile_ = w)
@@ -149,7 +157,7 @@ def main(do_play = False, do_write = True, do_log = False):
 		]
 	s = msgs[0]
 	fperiod = v['fperiod']
-	do_synthesis(s, v, do_play, do_write, do_log, fperiod)
+	do_synthesis(s, v, do_play, do_write, do_log, fperiod, pitch=50, inflection=50)
 
 if __name__ == '__main__':
 	main(do_play=False, do_write=True)

@@ -11,7 +11,7 @@ EXPORTS
     HTS_Engine_set_fperiod
     HTS_Engine_set_audio_buff_size
     HTS_Engine_load
-    HTS_Engine_synthesize_from_strings
+    HTS_Engine_synthesize_from_strings_ex
     HTS_Engine_refresh
     HTS_Engine_get_nsamples
     HTS_Engine_get_generated_speech
