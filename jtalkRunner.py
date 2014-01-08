@@ -4,8 +4,7 @@
 # by Takuya Nishimoto
 # http://ja.nishimotz.com/project:libopenjtalk
 # Usage:
-# > cd source
-# > python synthDrivers/jtalk/_jtalk_runner.py
+# > python jtalkRunner.py
 # requires pyaudio (PortAudio wrapper)
 # http://people.csail.mit.edu/hubert/pyaudio/
 
@@ -39,7 +38,7 @@ voices = [
 	 "lf0_base":5.0,
 	 "speaker_attenuation":1.0,
 	 "htsvoice": os.path.join(JT_DIR, 'm001', 'm001.htsvoice'),
-	 "espeak_variant": "max",
+	 #"espeak_variant": "max",
 	 },
 	{"id": "V2",
 	 "name": "mei",
@@ -50,7 +49,7 @@ voices = [
 	 "pitch_bias": -10,
 	 "speaker_attenuation": 0.5,
 	 "htsvoice": os.path.join(JT_DIR, 'mei', 'mei_normal.htsvoice'),
-	 "espeak_variant": "f1",
+	 #"espeak_variant": "f1",
 	 },
 	{"id": "V3",
 	 "name": "lite",
@@ -61,7 +60,7 @@ voices = [
 	 "pitch_bias": 0,
 	 "speaker_attenuation": 1.0,
 	 "htsvoice": os.path.join(JT_DIR, 'lite', 'voice.htsvoice'),
-	 "espeak_variant": "max",
+	 #"espeak_variant": "max",
 	 },
 	]
 
