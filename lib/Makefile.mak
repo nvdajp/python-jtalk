@@ -27,6 +27,7 @@ INCLUDES = -I$(OJTDIR)/text2mecab \
            -I$(OJTDIR)/jpcommon \
            -I$(OJTDIR)/mecab \
            -I$(HTSDIR)/include \
+           -I$(HTSDIR)/lib \
            -I.
 
 LDADD = $(OJTDIR)/text2mecab/text2mecab.lib \
@@ -42,16 +43,24 @@ LDADD = $(OJTDIR)/text2mecab/text2mecab.lib \
            $(OJTDIR)/jpcommon/jpcommon.lib \
            HTS_Engine_API.lib
 
+HTS_gstream_ex.c:
+	copy ..\htsengineapi\lib\HTS_gstream.c HTS_gstream_ex.c
+
+HTS_engine_ex.c:
+	copy ..\htsengineapi\lib\HTS_engine.c HTS_engine_ex.c
+
 libopenjtalk-timestamp.h:
 	python make_timestamp.py
 
-libopenjtalk.obj: libopenjtalk.c
-	$(CC) $(INCLUDES) $(CFLAGS) /c libopenjtalk.c
+.c.obj:
+	$(CC) $(INCLUDES) $(CFLAGS) /c $*.c /Fo$@
 
-libopenjtalk.dll: libopenjtalk.obj
+libopenjtalk.dll: libopenjtalk.obj HTS_gstream_ex.obj HTS_engine_ex.obj
 	$(LINK) /DLL /RELEASE /MACHINE:x86 /LTCG /OUT:libopenjtalk.dll \
-	libopenjtalk.obj $(LDADD) /DEF:libopenjtalk.def
+	libopenjtalk.obj HTS_gstream_ex.obj HTS_engine_ex.obj $(LDADD) /DEF:libopenjtalk.def
 
 clean:	
 	del /Q *.dll *.obj
 	del /Q libopenjtalk-timestamp.h
+	del /Q HTS_engine_ex.c
+	del /Q HTS_gstream_ex.c
