@@ -1,0 +1,22 @@
+*** ../libopenjtalk/jpcommon/jpcommon_label.c	Tue Dec 24 23:25:41 2013
+--- jpcommon_label.c	Thu Jan  9 19:22:15 2014
+***************
+*** 296,301 ****
+--- 296,302 ----
+        if (index == a)
+           break;
+     }
++    if (i > 3) i = 3;
+     return i;
+  }
+  
+***************
+*** 395,400 ****
+--- 396,402 ----
+  
+     for (i = 0, index = m->next; index != NULL; index = index->next)
+        i++;
++    if (i > 10) i = 10;
+     return index_mora_in_utterance(m) + i;
+  }
+  

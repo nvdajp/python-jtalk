@@ -34,9 +34,13 @@ all:
 	cd njd2jpcommon
 	nmake /f Makefile.mak
 	cd ..
-	cd jpcommon
-	nmake /f Makefile.mak
 	cd ..
+	cd jpcommon
+	copy ..\libopenjtalk\jpcommon\*.c .
+	copy ..\libopenjtalk\jpcommon\*.h .
+	copy ..\libopenjtalk\jpcommon\Makefile.mak .
+	patch jpcommon_label.c jpcommon_label.patch
+	nmake /f Makefile.mak
 	cd ..
 	cd lib
 	nmake /f Makefile.mak
@@ -79,9 +83,9 @@ clean:
 	cd njd2jpcommon
 	nmake /f Makefile.mak clean
 	cd ..
-	cd jpcommon
-	nmake /f Makefile.mak clean
 	cd ..
+	cd jpcommon
+	del /Q *.c *.h *.orig *.obj *.lib *.mak
 	cd ..
 	cd lib
 	nmake /f Makefile.mak clean

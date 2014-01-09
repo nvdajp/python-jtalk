@@ -11,6 +11,7 @@ CFLAGS = /O2 /Ob2 /Oi /Ot /Oy /GT /GL /TC
 
 OJTDIR = ../libopenjtalk
 HTSDIR = ../htsengineapi
+JPCOMMONDIR = ../jpcommon
 
 INCLUDES = -I$(OJTDIR)/text2mecab \
            -I$(OJTDIR)/mecab/src \
@@ -24,7 +25,7 @@ INCLUDES = -I$(OJTDIR)/text2mecab \
            -I$(OJTDIR)/njd_set_long_vowel \
            -I$(OJTDIR)/njd2jpcommon \
            -I$(OJTDIR)/mecab2njd \
-           -I$(OJTDIR)/jpcommon \
+           -I$(JPCOMMONDIR) \
            -I$(OJTDIR)/mecab \
            -I$(HTSDIR)/include \
            -I$(HTSDIR)/lib \
@@ -40,7 +41,7 @@ LDADD = $(OJTDIR)/text2mecab/text2mecab.lib \
            $(OJTDIR)/njd_set_unvoiced_vowel/njd_set_unvoiced_vowel.lib \
            $(OJTDIR)/njd_set_long_vowel/njd_set_long_vowel.lib \
            $(OJTDIR)/njd2jpcommon/njd2jpcommon.lib \
-           $(OJTDIR)/jpcommon/jpcommon.lib \
+           $(JPCOMMONDIR)/jpcommon.lib \
            HTS_Engine_API.lib
 
 HTS_gstream_ex.c:
