@@ -107,8 +107,8 @@ class MecabFeatures(NonblockingMecabFeatures):
 		super(MecabFeatures, self).__del__()
 		lock.release()
 
-def Mecab_initialize(logwrite_ = None, jtalk_dir = None):
-	mecab_dll = os.path.join(jtalk_dir, 'libmecab.dll')
+def Mecab_initialize(logwrite_ = None, mecab_dir = None):
+	mecab_dll = os.path.join(mecab_dir, 'libmecab.dll')
 	global libmc
 	if libmc is None:
 		libmc = cdll.LoadLibrary(mecab_dll.encode('mbcs'))
@@ -118,7 +118,7 @@ def Mecab_initialize(logwrite_ = None, jtalk_dir = None):
 		libmc.mecab_new.argtypes = [c_int, c_char_p_p]
 	global mecab
 	if mecab is None:
-		dic = os.path.join(jtalk_dir, 'dic')
+		dic = os.path.join(mecab_dir, 'dic')
 		if logwrite_: logwrite_('dic: %s' % dic)
 		try:
 			f = open(os.path.join(dic, "DIC_VERSION"))
@@ -130,7 +130,7 @@ def Mecab_initialize(logwrite_ = None, jtalk_dir = None):
 				raise RuntimeError('utf-8 dictionary for mecab required.')
 		except:
 			pass
-		mecabrc = os.path.join(jtalk_dir, 'mecabrc')
+		mecabrc = os.path.join(mecab_dir, 'mecabrc')
 		args = (c_char_p * 5)('mecab', '-d', dic.encode('utf-8'), '-r', mecabrc.encode('utf-8'))
 		mecab = libmc.mecab_new(5, args)
 		if logwrite_:
