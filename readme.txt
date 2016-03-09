@@ -7,10 +7,27 @@ setup:
 
 Visual Studio 2015 (Ver.14.0 for Windows Desktop)
 
+Python 2.7.11 (win32)
+
 > git clone https://github.com/nvdajp/python-jtalk
 > cd python-jtalk
 > git submodule sync
 > git submodule update --init --recursive
+> vcsetup.cmd
 > clean.cmd
 > build.cmd
+
+> dir ..\nvdajp\source\synthDrivers\jtalk\dic /w
+
+[.]                   [..]                  char.bin
+COPYING               COPYING-bep-eng.txt   dicrc
+DIC_VERSION           left-id.def           matrix.bin
+pos-id.def            rewrite.def           right-id.def
+sys.dic               unk.dic
+
+> dir ..\nvdajp\source\synthDrivers\jtalk\mei /w
+
+[.]                   [..]                  COPYRIGHT.txt
+mei_normal.htsvoice   README.txt
+
 > python jtalkRunner.py
