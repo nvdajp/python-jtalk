@@ -8,6 +8,7 @@ lib/*.dll
 lib/*.exp
 lib/*.obj
 lib/libopenjtalk-timestamp.h
+lib/*.c.orig
 libopenjtalk.dll
 *.pyc
 *.jtlog
