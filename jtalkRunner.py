@@ -13,19 +13,12 @@ import os
 import sys
 import wave
 import time
-import pyaudio
 import cProfile
 import pstats
 from jtalkCore import *
 import jtalkPrepare
 
-#JT_DIR = unicode(os.path.dirname(__file__), 'mbcs')
-#if hasattr(sys,'frozen'):
-#	d = os.path.join(os.getcwdu(), 'synthDrivers', 'jtalk')
-#	if os.path.isdir(d):
-#		JT_DIR = d
-
-JT_DIR = r'.'
+JT_DIR = r'..\nvdajp\source\synthDrivers\jtalk'
 JT_LIB_DIR = r'.'
 JT_DLL = os.path.join(JT_LIB_DIR, 'libopenjtalk.dll')
 
@@ -65,6 +58,7 @@ voices = [
 	]
 
 def pa_play(data, samp_rate = 16000):
+	import pyaudio
 	p = pyaudio.PyAudio()
 	stream = p.open(format = p.get_format_from_width(2),
 		channels = 1, rate = samp_rate, output = True)
@@ -88,7 +82,7 @@ def print_code(msg):
 		s += '%04x ' % ord(c)
 	print(s)
 
-def do_synthesis(msg, voice_args, do_play, do_write, do_log, fperiod, pitch=50, inflection=50, vol=50):
+def do_synthesis(msg, voice_args, do_play, do_write, do_write_jt, do_log, fperiod, pitch=50, inflection=50, vol=50):
 	msg = jtalkPrepare.convert(msg)
 	s = text2mecab(msg)
 	__print("utf-8: (%s)" % s.decode('utf-8', 'ignore'))
@@ -109,7 +103,7 @@ def do_synthesis(msg, voice_args, do_play, do_write, do_log, fperiod, pitch=50, 
 		__print('feature size %d' % a.size)
 		Mecab_print(a, __print)
 		Mecab_utf8_to_cp932(a)
-		if do_write:
+		if do_write_jt:
 			w = "_test%d.jt.wav" % count
 		else:
 			w = None
@@ -142,25 +136,19 @@ def do_synthesis(msg, voice_args, do_play, do_write, do_log, fperiod, pitch=50, 
 		del a
 	del mf
 
-def main(do_play = False, do_write = True, do_log = False):
+def main(do_play = False, do_write = True, do_write_jt = False, do_log = False, voice_id=1,s=''):
 	njd = NJD()
 	jpcommon = JPCommon()
 	engine = HTS_Engine()
 	libjt_initialize(JT_DLL)
-	v = voices[1]
+	v = voices[voice_id]
 	libjt_load(v['htsvoice'])
 	Mecab_initialize(__print, JT_DIR)
-
-	msgs = [
-		'100.25ドル。ウェルカムトゥー nvda テンキーのinsertキーと、メインのinsertキーの両方が、nvdaキーとして動作します',
-		'マーク。まーく。',
-		]
-	s = msgs[0]
 	fperiod = v['fperiod']
-	do_synthesis(s, v, do_play, do_write, do_log, fperiod, pitch=50, inflection=50)
+	do_synthesis(s, v, do_play, do_write, do_write_jt, do_log, fperiod, pitch=50, inflection=50)
 
 if __name__ == '__main__':
-	main(do_play=False, do_write=True)
+	main(do_play=False, do_write=True, do_log=True, voice_id=1, s='100.25ドル')
 	#prof = cProfile.run("main(do_play=True)", '_cprof.prof')
 	#p = pstats.Stats('_cprof.prof')
 	#p.strip_dirs()

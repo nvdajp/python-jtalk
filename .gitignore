@@ -10,3 +10,5 @@ lib/*.obj
 lib/libopenjtalk-timestamp.h
 libopenjtalk.dll
 *.pyc
+*.jtlog
+*.wav
