@@ -15,6 +15,23 @@ EXPORTS
     HTS_Engine_refresh
     HTS_Engine_get_nsamples
     HTS_Engine_get_generated_speech
+    HTS_Engine_set_speed
+    HTS_Engine_add_half_tone
+    HTS_Engine_set_volume
+    HTS_Engine_set_msd_threshold
+    HTS_Engine_get_msd_threshold
+    HTS_Engine_set_gv_weight
+    HTS_Engine_get_gv_weight
+    HTS_Engine_set_alpha
+    HTS_Engine_get_alpha
+    HTS_Engine_set_beta
+    HTS_Engine_get_beta
+    HTS_Engine_set_duration_interpolation_weight
+    HTS_Engine_get_duration_interpolation_weight
+    HTS_Engine_set_parameter_interpolation_weight
+    HTS_Engine_get_parameter_interpolation_weight
+    HTS_Engine_set_gv_interpolation_weight
+    HTS_Engine_get_gv_interpolation_weight
     NJD_refresh
     NJD_clear
     NJD_initialize
