@@ -163,7 +163,7 @@ int jt_speech_prepare(
 	m_samples = ns;
 
 	trim_silence(begin_thres, end_thres);
-	speech_normalize(level);
+	/* speech_normalize(level); */
 	return m_samples;
 }
 
