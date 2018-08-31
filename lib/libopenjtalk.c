@@ -71,14 +71,18 @@ short *jt_speech_ptr()
 static void speech_normalize(short level)
 {
 	int i;
-	short max = 0;
 	const int MAX_LEVEL = 32767;
+#if 1
+	const int max = 32767;
+#else
+	short max = 0;
 	level = abs(level);
 	for (i = 0; i < m_samples; i++) {
 		int a;
 		a = abs(m_buf[i]);
 		if (max < a) max = a;
 	}
+#endif
 	for (i = 0; i < m_samples; i++) {
 		float f, g;
 		f = (float)m_buf[i];
@@ -163,7 +167,7 @@ int jt_speech_prepare(
 	m_samples = ns;
 
 	trim_silence(begin_thres, end_thres);
-	/* speech_normalize(level); */
+	speech_normalize(level);
 	return m_samples;
 }
 
