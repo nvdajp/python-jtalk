@@ -8,11 +8,6 @@ import string
 import os
 import struct
 import sys
-if sys.version_info[0] > 2:
-	xrange = range
-	encode_mbcs = lambda s : s
-else:
-	encode_mbcs = lambda s : s.encode('mbcs')
 from mecab import *
 
 ############################################
@@ -232,7 +227,7 @@ def libjt_version():
 def libjt_initialize(JT_DLL):
 	global libjt, njd, jpcommon, engine
 	
-	if libjt is None: libjt = cdll.LoadLibrary(encode_mbcs(JT_DLL))
+	if libjt is None: libjt = cdll.LoadLibrary(JT_DLL.encode('mbcs'))
 	libjt.jt_version.restype = c_char_p
 
 	# argtypes & restype
@@ -261,8 +256,8 @@ def libjt_initialize(JT_DLL):
 
 	libjt.HTS_Engine_initialize.argtypes = [HTS_Engine_ptr]
 	libjt.HTS_Engine_load.argtypes = [HTS_Engine_ptr, FILENAME_ptr_ptr, c_int]
-	libjt.HTS_Engine_set_sampling_frequency.argtypes = [HTS_Engine_ptr, c_size_t]
-	libjt.HTS_Engine_set_fperiod.argtypes = [HTS_Engine_ptr, c_size_t]
+	libjt.HTS_Engine_set_sampling_frequency.argtypes = [HTS_Engine_ptr, c_int]
+	libjt.HTS_Engine_set_fperiod.argtypes = [HTS_Engine_ptr, c_int]
 	libjt.HTS_Engine_set_audio_buff_size.argtypes = [HTS_Engine_ptr, c_int]
 	libjt.HTS_Engine_get_nsamples.argtypes = [HTS_Engine_ptr]
 	libjt.HTS_Engine_get_generated_speech.argtypes = [HTS_Engine_ptr, c_int]
@@ -270,45 +265,6 @@ def libjt_initialize(JT_DLL):
 	libjt.HTS_Engine_refresh.argtypes = [HTS_Engine_ptr]
 	libjt.HTS_Engine_synthesize_from_strings_ex.argtypes = [HTS_Engine_ptr, c_char_p_p, c_size_t, c_double, c_double]
 	libjt.HTS_Engine_synthesize_from_strings_ex.restype = hts_boolean
-
-	libjt.HTS_Engine_set_speed.argtypes = [HTS_Engine_ptr, c_double]
-	libjt.HTS_Engine_add_half_tone.argtypes = [HTS_Engine_ptr, c_double]
-	libjt.HTS_Engine_set_volume.argtypes = [HTS_Engine_ptr, c_double]
-	
-	# MSD threshold
-	libjt.HTS_Engine_set_msd_threshold.argtypes = [HTS_Engine_ptr, c_size_t, c_double]
-	libjt.HTS_Engine_get_msd_threshold.argtypes = [HTS_Engine_ptr, c_size_t]
-	libjt.HTS_Engine_get_msd_threshold.restypes = c_double
-
-	# GV weight
-	libjt.HTS_Engine_set_gv_weight.argtypes = [HTS_Engine_ptr, c_size_t, c_double]
-	libjt.HTS_Engine_get_gv_weight.argtypes = [HTS_Engine_ptr, c_size_t]
-	libjt.HTS_Engine_get_gv_weight.restypes = c_double
-
-	# alpha
-	libjt.HTS_Engine_set_alpha.argtypes = [HTS_Engine_ptr, c_double]
-	libjt.HTS_Engine_get_alpha.argtypes = [HTS_Engine_ptr]
-	libjt.HTS_Engine_get_alpha.restype = c_double
-
-	# beta
-	libjt.HTS_Engine_set_beta.argtypes = [HTS_Engine_ptr, c_double]
-	libjt.HTS_Engine_get_beta.argtypes = [HTS_Engine_ptr]
-	libjt.HTS_Engine_get_beta.restype = c_double
-
-	# interpolation weight for duration
-	libjt.HTS_Engine_set_duration_interpolation_weight.argtypes = [HTS_Engine_ptr, c_size_t, c_double]
-	libjt.HTS_Engine_get_duration_interpolation_weight.argtypes = [HTS_Engine_ptr, c_size_t]
-	libjt.HTS_Engine_get_duration_interpolation_weight.restype = c_double
-
-	# interpolation weight for parameter
-	libjt.HTS_Engine_set_parameter_interpolation_weight.argtypes = [HTS_Engine_ptr, c_size_t, c_size_t, c_double]
-	libjt.HTS_Engine_get_parameter_interpolation_weight.argtypes = [HTS_Engine_ptr, c_size_t, c_size_t]
-	libjt.HTS_Engine_get_parameter_interpolation_weight.restype = c_double
-
-	# interpolation weight for GV
-	libjt.HTS_Engine_set_gv_interpolation_weight.argtypes = [HTS_Engine_ptr, c_size_t, c_size_t, c_double]
-	libjt.HTS_Engine_get_gv_interpolation_weight.argtypes = [HTS_Engine_ptr, c_size_t, c_size_t]
-	libjt.HTS_Engine_get_gv_interpolation_weight.restype = c_double
 
 	libjt.jt_speech_prepare.argtypes = [c_double_p, c_size_t, c_short, c_short, c_short]
 	libjt.jt_speech_prepare.restype = c_int
@@ -344,7 +300,6 @@ def libjt_synthesis(feature,
 					size,
 					fperiod_=80,
 					feed_func_=None,
-					on_done_=None,
 					is_speaking_func_=None,
 					begin_thres_=32,
 					end_thres_=32,
@@ -391,35 +346,6 @@ def libjt_synthesis(feature,
 		byte_count = ns * sizeof(c_short)
 		buf = string_at(speech_ptr, byte_count)
 		if feed_func_:
-			try:
-				feed_func_(buf, onDone=on_done_)
-			except TypeError:
-				feed_func_(buf)
-			except (WindowsError, RuntimeError):
-				pass
+			feed_func_(buf)
 	if logwrite_ : logwrite_('libjt_synthesis done.')
 	return buf
-
-def libjt_set_alpha(d):
-	global libjt, engine
-	libjt.HTS_Engine_set_alpha(engine, d)
-
-def libjt_get_alpha():
-	global libjt, engine
-	return libjt.HTS_Engine_get_alpha(engine)
-
-def libjt_set_beta(d):
-	global libjt, engine
-	libjt.HTS_Engine_set_beta(engine, d)
-
-def libjt_get_beta():
-	global libjt, engine
-	return libjt.HTS_Engine_get_beta(engine)
-
-def libjt_set_gv_interpolation_weight(a, b, d):
-	global libjt, engine
-	libjt.HTS_Engine_set_gv_interpolation_weight(engine, a, b, d)
-
-def libjt_get_gv_interpolation_weight(a, b):
-	global libjt, engine
-	return libjt.HTS_Engine_get_gv_interpolation_weight(engine, a, b)
