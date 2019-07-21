@@ -1,6 +1,8 @@
 # coding: UTF-8
 # text2mecab.py for python-jtalk
 
+from __future__ import absolute_import
+
 import unicodedata
 import re
 
@@ -12,6 +14,8 @@ def text2mecab_setup():
 	global predic
 	if predic is None:
 		predic = [
+			[re.compile(u"\r"), ''],
+			[re.compile(u"\n"), ''],
 			[re.compile(u" "), u"　"],
 			[re.compile(u"!"), u"！"],
 			[re.compile(u"\""), u"”"],
