@@ -1,12 +1,13 @@
 # coding: UTF-8
 # mecab.py for python-jtalk
 
-from __future__ import absolute_import
-
 CODE = 'utf-8'
 
 from ctypes import *
+import codecs
+import string
 import os
+import struct
 import threading
 import sys
 if sys.version_info.major >= 3:

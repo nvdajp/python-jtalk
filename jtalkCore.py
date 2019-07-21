@@ -2,10 +2,11 @@
 # -*- coding: utf-8 -*-
 # Copyright (C) 2013-2019 Takuya Nishimoto
 
-from __future__ import absolute_import
-
+import codecs
 import re
+import string
 import os
+import struct
 import sys
 if sys.version_info.major >= 3:
 	xrange = range
