@@ -1,6 +1,8 @@
 # coding: UTF-8
 # text2mecab.py for python-jtalk
 
+from __future__ import absolute_import
+
 import unicodedata
 import re
 
