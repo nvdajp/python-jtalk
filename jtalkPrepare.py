@@ -3,11 +3,6 @@
 # for python-jtalk
 
 import re
-import sys
-if sys.version_info.major >= 3:
-	re_ascii = re.ASCII
-else:
-	re_ascii = 0
 
 predic = None
 
@@ -79,30 +74,30 @@ def load():
 		[re.compile(u'(\\d{1,4})\\.(\\d{1,4})\\.(\\d{1,4})'), u'\\1テン\\2テン\\3'],
 
 		# do not replace '0' after '.' to phonetic symbols (prepare)
-		[re.compile(u'\\.0'), u'.0\u00a0'],
+		[re.compile(u'\\.0'), u'.0０'],
 
-		[re.compile(u'\\b0(\\d)(\\d)(\\d)(\\d)(\\d)(\\d)(\\d)(\\d)(\\d)', re_ascii), u'  \u00a00  \u00a0\\1  \u00a0\\2  \u00a0\\3  \u00a0\\4  \u00a0\\5  \u00a0\\6  \u00a0\\7  \u00a0\\8  \u00a0\\9 '],
-		[re.compile(u'\\b0(\\d)(\\d)(\\d)(\\d)(\\d)(\\d)(\\d)(\\d)', re_ascii), u'  \u00a00  \u00a0\\1  \u00a0\\2  \u00a0\\3  \u00a0\\4  \u00a0\\5  \u00a0\\6  \u00a0\\7  \u00a0\\8 '],
-		[re.compile(u'\\b0(\\d)(\\d)(\\d)(\\d)(\\d)(\\d)(\\d)', re_ascii), u'  \u00a00  \u00a0\\1  \u00a0\\2  \u00a0\\3  \u00a0\\4  \u00a0\\5  \u00a0\\6  \u00a0\\7 '],
-		[re.compile(u'\\b0(\\d)(\\d)(\\d)(\\d)(\\d)(\\d)', re_ascii), u'  \u00a00  \u00a0\\1  \u00a0\\2  \u00a0\\3  \u00a0\\4  \u00a0\\5  \u00a0\\6 '],
-		[re.compile(u'\\b0(\\d)(\\d)(\\d)(\\d)(\\d)', re_ascii), u'  \u00a00  \u00a0\\1  \u00a0\\2  \u00a0\\3  \u00a0\\4  \u00a0\\5 '],
-		[re.compile(u'\\b0(\\d)(\\d)(\\d)(\\d)', re_ascii), u'  \u00a00  \u00a0\\1  \u00a0\\2  \u00a0\\3  \u00a0\\4 '],
-		[re.compile(u'\\b0(\\d)(\\d)(\\d)', re_ascii), u'  \u00a00  \u00a0\\1  \u00a0\\2  \u00a0\\3 '],
-		[re.compile(u'\\b0(\\d)(\\d)', re_ascii), u'  \u00a00  \u00a0\\1  \u00a0\\2 '],
-		[re.compile(u'\\b0(\\d)', re_ascii), u'  \u00a00  \u00a0\\1 '],
+		[re.compile(u'\\b0(\\d)(\\d)(\\d)(\\d)(\\d)(\\d)(\\d)(\\d)(\\d)'), u'  ０0  ０\\1  ０\\2  ０\\3  ０\\4  ０\\5  ０\\6  ０\\7  ０\\8  ０\\9 '],
+		[re.compile(u'\\b0(\\d)(\\d)(\\d)(\\d)(\\d)(\\d)(\\d)(\\d)'), u'  ０0  ０\\1  ０\\2  ０\\3  ０\\4  ０\\5  ０\\6  ０\\7  ０\\8 '],
+		[re.compile(u'\\b0(\\d)(\\d)(\\d)(\\d)(\\d)(\\d)(\\d)'), u'  ０0  ０\\1  ０\\2  ０\\3  ０\\4  ０\\5  ０\\6  ０\\7 '],
+		[re.compile(u'\\b0(\\d)(\\d)(\\d)(\\d)(\\d)(\\d)'), u'  ０0  ０\\1  ０\\2  ０\\3  ０\\4  ０\\5  ０\\6 '],
+		[re.compile(u'\\b0(\\d)(\\d)(\\d)(\\d)(\\d)'), u'  ０0  ０\\1  ０\\2  ０\\3  ０\\4  ０\\5 '],
+		[re.compile(u'\\b0(\\d)(\\d)(\\d)(\\d)'), u'  ０0  ０\\1  ０\\2  ０\\3  ０\\4 '],
+		[re.compile(u'\\b0(\\d)(\\d)(\\d)'), u'  ０0  ０\\1  ０\\2  ０\\3 '],
+		[re.compile(u'\\b0(\\d)(\\d)'), u'  ０0  ０\\1  ０\\2 '],
+		[re.compile(u'\\b0(\\d)'), u'  ０0  ０\\1 '],
 
-		[re.compile(u' \u00a00'), u'ゼロ'],
-		[re.compile(u' \u00a01'), u'イチ'],
-		[re.compile(u' \u00a02'), u'ニー'],
-		[re.compile(u' \u00a03'), u'サン'],
-		[re.compile(u' \u00a04'), u'ヨン'],
-		[re.compile(u' \u00a05'), u'ゴー'],
-		[re.compile(u' \u00a06'), u'ロク'],
-		[re.compile(u' \u00a07'), u'ナナ'],
-		[re.compile(u' \u00a08'), u'ハチ'],
-		[re.compile(u' \u00a09'), u'キュー'],
+		[re.compile(u' ０0'), u'ゼロ'],
+		[re.compile(u' ０1'), u'イチ'],
+		[re.compile(u' ０2'), u'ニー'],
+		[re.compile(u' ０3'), u'サン'],
+		[re.compile(u' ０4'), u'ヨン'],
+		[re.compile(u' ０5'), u'ゴー'],
+		[re.compile(u' ０6'), u'ロク'],
+		[re.compile(u' ０7'), u'ナナ'],
+		[re.compile(u' ０8'), u'ハチ'],
+		[re.compile(u' ０9'), u'キュー'],
 
 		# do not replace '0' after '.' to phonetic symbols (finalize)
-		[re.compile(u'\\.0\u00a0'), u'.0'],
+		[re.compile(u'\\.0０'), u'.0'],
 	]
 

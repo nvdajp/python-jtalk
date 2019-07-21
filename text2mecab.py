@@ -12,8 +12,6 @@ def text2mecab_setup():
 	global predic
 	if predic is None:
 		predic = [
-			[re.compile(u"\r"), ''],
-			[re.compile(u"\n"), ''],
 			[re.compile(u" "), u"　"],
 			[re.compile(u"!"), u"！"],
 			[re.compile(u"\""), u"”"],

@@ -10,15 +10,7 @@ import os
 import struct
 import threading
 import sys
-if sys.version_info.major >= 3:
-	xrange = range
-	encode_mbcs = lambda s : s
-else:
-	encode_mbcs = lambda s : s.encode('mbcs')
-import re
-from .text2mecab import text2mecab
-from .roma2kana import getKanaFromRoma
-from ._nvdajp_spellchar import convert as convertSpellChar
+from text2mecab import text2mecab
 
 c_double_p = POINTER(c_double)
 c_double_p_p = POINTER(c_double_p) 
@@ -115,18 +107,19 @@ class MecabFeatures(NonblockingMecabFeatures):
 		super(MecabFeatures, self).__del__()
 		lock.release()
 
-def Mecab_initialize(logwrite_ = None, libmecab_dir = None, dic = None, user_dics = None):
-	mecab_dll = os.path.join(libmecab_dir, 'libmecab.dll')
+def Mecab_initialize(logwrite_ = None, mecab_dir = None):
+	mecab_dll = os.path.join(mecab_dir, 'libmecab.dll')
 	global libmc
 	if libmc is None:
-		libmc = cdll.LoadLibrary(encode_mbcs(mecab_dll))
+		libmc = cdll.LoadLibrary(mecab_dll.encode('mbcs'))
 		libmc.mecab_version.restype = c_char_p
 		libmc.mecab_strerror.restype = c_char_p
 		libmc.mecab_sparse_tonode.restype = mecab_node_t_ptr
 		libmc.mecab_new.argtypes = [c_int, c_char_p_p]
 	global mecab
 	if mecab is None:
-		if logwrite_: logwrite_(u'dic: %s' % dic)
+		dic = os.path.join(mecab_dir, 'dic')
+		if logwrite_: logwrite_('dic: %s' % dic)
 		try:
 			f = open(os.path.join(dic, "DIC_VERSION"))
 			s = f.read().strip()
@@ -137,14 +130,9 @@ def Mecab_initialize(logwrite_ = None, libmecab_dir = None, dic = None, user_dic
 				raise RuntimeError('utf-8 dictionary for mecab required.')
 		except:
 			pass
-		mecabrc = os.path.join(libmecab_dir, 'mecabrc')
-		argc, args = 5, (c_char_p * 5)(b'mecab', b'-d', dic.encode('utf-8'), b'-r', mecabrc.encode('utf-8'))
-		if user_dics:
-			# ignore item which contains comma
-			ud = ','.join([s for s in user_dics if not ',' in s])
-			if logwrite_: logwrite_(u'user_dics: %s' % ud)
-			argc, args = 7, (c_char_p * 7)(b'mecab', b'-d', dic.encode('utf-8'), b'-r', mecabrc.encode('utf-8'), b'-u', ud.encode('utf-8'))
-		mecab = libmc.mecab_new(argc, args)
+		mecabrc = os.path.join(mecab_dir, 'mecabrc')
+		args = (c_char_p * 5)('mecab', '-d', dic.encode('utf-8'), '-r', mecabrc.encode('utf-8'))
+		mecab = libmc.mecab_new(5, args)
 		if logwrite_:
 			if not mecab: logwrite_('mecab_new failed.')
 			s = libmc.mecab_strerror(mecab).strip()
@@ -169,7 +157,7 @@ def Mecab_analysis(src, features, logwrite_ = None):
 		s = node[0].stat
 		if s != MECAB_BOS_NODE and s != MECAB_EOS_NODE:
 			c = node[0].length
-			s = string_at(node[0].surface, c) + b"," + string_at(node[0].feature)
+			s = string_at(node[0].surface, c) + "," + string_at(node[0].feature)
 			if logwrite_: logwrite_(s.decode(CODE, 'ignore'))
 			buf = create_string_buffer(s)
 			dst_ptr = features.feature[i]
@@ -227,129 +215,39 @@ def getMoraCount(s):
 			return int(m2)
 	return 0
 
-RE_FULLSHAPE_ALPHA = re.compile(u'^[Ａ-Ｚａ-ｚ]+$')
-
-def _shouldWorkAroundLatinWordPostfix(ar3, ar2, ar):
-	return (not (ar3 and ar3[0] == u'\u3000' and ar2 and ar2[0] == u"’")) and ar2 and ar[0] in (u'ｓ', u'ｄ', u'ｅｄ', u'ｒ', u'ｔｉｎｇ', u'ｔ')
-
-def _makeFeatureFromLatinWordAndPostfix(org, ar, symbol=''):
-	_hyoki = ar[0]
-	_yomi = ar[8] if len(ar) > 8 else convertSpellChar(_hyoki).replace(' ', '')
-	_pron = ar[9] if len(ar) > 9 else convertSpellChar(_hyoki).replace(' ', '')
-	hin1 = ar[1]
-	hin2 = ar[2]
-	hin3 = ar[3]
-	postfix = u''
-	if org == u'ｓ':
-		postfix = u'ズ'
-		if _hyoki.endswith(u'ｐ') or _hyoki.endswith(u'ｋｅ') or _hyoki.endswith(u'ｒｋ'):
-			postfix = u'ス'
-		elif _hyoki.endswith(u'ｔｈａｔ'):
-			# that's ザットゥズ -> ザッツ
-			postfix = u'ツ'
-			_yomi = _yomi[:-2]
-			_pron = _pron[:-2]
-		elif _hyoki.endswith(u'ｗｏｒｄ'):
-			# https://github.com/nvdajp/nvdajpmiscdep/issues/53
-			# words ワードズ -> ワーズ
-			postfix = u'ズ'
-			_yomi = _yomi[:-1]
-			_pron = _pron[:-1]
-	elif org == u'ｔ':
-		postfix = u'ト'
-	elif org in (u'ｄ', u'ｅｄ'):
-		if _hyoki.endswith(u'ｔｅ') and _yomi.endswith(u'ト'):
-			# update アップデート -> updated アップデーティド
-			postfix = u'ティド'
-			_yomi = _yomi[:-1]
-			_pron = _pron[:-1]
-		else:
-			postfix = u'ド'
-	elif org == u'ｒ':
-		postfix = u'ア'
-		if _hyoki.endswith(u'ｓｅ'):
-			postfix = u'ザー'
-			_yomi = _yomi[:-1]
-			_pron = _pron[:-1]
-	elif _hyoki.endswith(u'ｔ') and _yomi.endswith(u'ト') and org == u'ｔｉｎｇ':
-		postfix = u'ティング'
-		_yomi = _yomi[:-1]
-		_pron = _pron[:-1]
-	hyoki = _hyoki + symbol + org
-	yomi = _yomi + postfix
-	pron = _pron + postfix
-	mora = getMoraCount(ar[10]) + 1 if len(ar) > 10 else len(pron)
-	feature = u'{h},{h1},{h2},{h3},*,*,*,{h},{y},{p},0/{m},C0'.format(
-		h=hyoki, h1=hin1, h2=hin2, h3=hin3, y=yomi, p=pron, m=mora
-	)
-	return feature
-
-def _makeBraillePatternReading(s):
-	n = ord(s) - 0x2800
-	if n == 0:
-		return u'マスアケ'
-	ar = []
-	if n & 0x01: ar.append(u'イチ')
-	if n & 0x02: ar.append(u'ニー')
-	if n & 0x04: ar.append(u'サン')
-	if n & 0x08: ar.append(u'ヨン')
-	if n & 0x10: ar.append(u'ゴー')
-	if n & 0x20: ar.append(u'ロク')
-	if n & 0x40: ar.append(u'ナナ')
-	if n & 0x80: ar.append(u'ハチ')
-	return u''.join(ar) + u'ノテン'
-
+# PATTERN 1
+# before:
+# 1 五絡脈病証,名詞,数,*,*,*,*,*
+#
+# after:
+# 1 五絡脈病証,名詞,普通名詞,*,*,*,*,五絡脈病証,ゴミャクラクビョウショウ,
+# ゴミャクラクビョーショー,1/9,C0
+# 
+# PATTERN 2
+# before:
+# 0 ∫⣿♪　,名詞,サ変接続,*,*,*,*,*
+#
+# after:
+# 0 ∫⣿♪　,名詞,サ変接続,*,*,*,*,∫♪　,セキブンキゴーイチニーサンヨンゴーロクナナ
+# ハチノテンオンプ,セキブンキゴーイチニーサンヨンゴーロクナナハチノテンオンプ,1/29,C0
+# 
+# PATTERN 3
+# before:
+# 0 ま,接頭詞,名詞接続,*,*,*,*,ま,マ,マ,1/1,P2
+# 1 ー,名詞,一般,*,*,*,*,*
+#
+# after:
+# 0 ま,接頭詞,名詞接続,*,*,*,*,まー,マー,マー,1/2,P2
+# 1 ー,名詞,一般,*,*,*,*,*
 def Mecab_correctFeatures(mf, CODE_ = CODE):
 	for pos in xrange(0, mf.size):
 		ar = Mecab_getFeature(mf, pos, CODE_=CODE_).split(',')
-		if pos >= 1:
-			ar2 = Mecab_getFeature(mf, pos-1, CODE_=CODE_).split(',')
-		else:
-			ar2 = None
-		if pos >= 2:
-			ar3 = Mecab_getFeature(mf, pos-2, CODE_=CODE_).split(',')
-		else:
-			ar3 = None
-		if ar3 and ar2 and RE_FULLSHAPE_ALPHA.match(ar3[0]) and RE_FULLSHAPE_ALPHA.match(ar2[0]) and RE_FULLSHAPE_ALPHA.match(ar[0]):
-			# nvdajp/nvdajpmiscdep#28
-			# before:
-			# 0 ｓ,記号,アルファベット,*,*,*,*,ｓ,エス,エス,1/2,*
-			# 1 ａｔｏｋ,名詞,一般,*,*,*,*,ａｔｏｋ,エイトック,エイトック,0/5,C0
-			# 2 ｏ,記号,アルファベット,*,*,*,*,ｏ,オー,オー,1/2,*
-			# after:
-			# 0 ,,,*,*,*,*
-			# 1 ,,,*,*,*,*
-			# 2 ｓａｔｏｋｏ,名詞,固有名詞,*,*,*,*,ｓａｔｏｋｏ,サトコ,サトコ,0/3,C0
-			hyoki = ar3[0] + ar2[0] + ar[0]
-			hin1 = u'名詞'
-			hin2 = u'固有名詞'
-			yomi = getKanaFromRoma(hyoki)
-			if yomi:
-				pron = yomi
-				mora = len(yomi)
-				feature = u'{h},{h1},{h2},*,*,*,*,{h},{y},{p},0/{m},C0'.format(
-					h=hyoki, h1=hin1, h2=hin2, y=yomi, p=pron, m=mora
-				)
-				Mecab_setFeature(mf, pos-2, ',,,*,*,*,*', CODE_=CODE_)
-				Mecab_setFeature(mf, pos-1, ',,,*,*,*,*', CODE_=CODE_)
-				Mecab_setFeature(mf, pos, feature, CODE_=CODE_)
-		elif (ar[2] == u'数' and ar[7] == u'*') or (ar[1] == u'名詞' and ar[2] == u'サ変接続' and ar[7] == u'*'):
-			# PATTERN 1
-			# before:
-			# 1 五絡脈病証,名詞,数,*,*,*,*,*
-			#
-			# after:
-			# 1 五絡脈病証,名詞,普通名詞,*,*,*,*,五絡脈病証,ゴミャクラクビョウショウ,
-			# ゴミャクラクビョーショー,1/9,C0
-			# 
-			# PATTERN 2
-			# before:
-			# 0 ∫⣿♪　,名詞,サ変接続,*,*,*,*,*
-			#
-			# after:
-			# 0 ∫⣿♪　,名詞,サ変接続,*,*,*,*,∫♪　,セキブンキゴーイチニーサンヨンゴーロクナナ
-			# ハチノテンオンプ,セキブンキゴーイチニーサンヨンゴーロクナナハチノテンオンプ,1/29,C0
-			# 
+		need_fix = False
+		if ar[2] == u'数' and ar[7] == u'*': 
+			need_fix = True
+		if ar[1] == u'名詞' and ar[2] == u'サ変接続' and ar[7] == u'*': 
+			need_fix = True
+		if need_fix:
 			hyoki = ar[0]
 			yomi = ''
 			pron = ''
@@ -364,20 +262,10 @@ def Mecab_correctFeatures(mf, CODE_ = CODE):
 						pron += ar2[9]
 						mora += getMoraCount(ar2[10])
 			nbmf = None
-			feature = u'{h},名詞,普通名詞,*,*,*,*,{h},{y},{p},0/{m},C0'.format(
-				h=hyoki, y=yomi, p=pron, m=mora
-			)
+			feature = u'{h},名詞,普通名詞,*,*,*,*,{h},{y},{p},1/{m},C0'.format(h=hyoki, y=yomi, p=pron, m=mora)
 			Mecab_setFeature(mf, pos, feature, CODE_=CODE_)
-		elif ar2 and ar[0] == u'ー' and ar[1] == u'名詞' and ar[2] == u'一般':
-			# PATTERN 3
-			# before:
-			# 0 ま,接頭詞,名詞接続,*,*,*,*,ま,マ,マ,1/1,P2
-			# 1 ー,名詞,一般,*,*,*,*,*
-			#
-			# after:
-			# 0 ま,接頭詞,名詞接続,*,*,*,*,まー,マー,マー,1/2,P2
-			# 1 ー,名詞,一般,*,*,*,*,*
-			#
+		elif pos > 0 and ar[0] == u'ー' and ar[1] == u'名詞' and ar[2] == u'一般':
+			ar2 = Mecab_getFeature(mf, pos-1, CODE_=CODE_).split(',')
 			if len(ar2) > 10:
 				hyoki = ar2[0] + u'ー'
 				hin1 = ar2[1]
@@ -385,84 +273,19 @@ def Mecab_correctFeatures(mf, CODE_ = CODE):
 				yomi = ar2[8] + u'ー'
 				pron = ar2[9] + u'ー'
 				mora = getMoraCount(ar2[10]) + 1
-				feature = u'{h},{h1},{h2},*,*,*,*,{h},{y},{p},0/{m},C0'.format(
-					h=hyoki, h1=hin1, h2=hin2, y=yomi, p=pron, m=mora
-				)
+				feature = u'{h},{h1},{h2},*,*,*,*,{h},{y},{p},1/{m},C0'.format(h=hyoki, h1=hin1, h2=hin2, y=yomi, p=pron, m=mora)
 				Mecab_setFeature(mf, pos-1, feature, CODE_=CODE_)
-			elif ar3 and len(ar3) > 10 and ar3[1] != u'記号':
-				hyoki = ar3[0] + ar2[0] + u'ー'
-				hin1 = ar3[1]
-				hin2 = ar3[2]
-				yomi = ar3[8] + ar2[0] + u'ー'
-				pron = ar3[9] + ar2[0] + u'ー'
-				mora = getMoraCount(ar3[10]) + len(ar2[0]) + 1
-				feature = u'{h},{h1},{h2},*,*,*,*,{h},{y},{p},0/{m},C0'.format(
-					h=hyoki, h1=hin1, h2=hin2, y=yomi, p=pron, m=mora
-				)
-				Mecab_setFeature(mf, pos-2, feature, CODE_=CODE_)
-		elif _shouldWorkAroundLatinWordPostfix(ar3, ar2, ar):
-			# https://github.com/nvdajp/nvdajpmiscdep/issues/42
-			#print ((unicode(ar3[0]) if ar3 else '*') + '/' + (unicode(ar2[0]) if ar2 else '*') + '/' + (unicode(ar[0]) if ar else '*')).encode('utf-8')
-			# pattern 5
-			if ar3 and ar2[0] in ("'", u"’"):
-				# PATTERN 5 "author's"
-				# before:
-				# 0 ａｕｔｈｏｒ,名詞,一般,*,*,*,*,ａｕｔｈｏｒ,オーサー,オーサー,1/4,C0
-				# 1 ’,記号,括弧閉,*,*,*,*,’,’,’,*/*,*
-				# 2 ｓ,記号,アルファベット,*,*,*,*,ｓ,エス,エス,1/2,*
-				#
-				# after:
-				# 0 ,,,*,*,*,*
-				# 1 ,,,*,*,*,*
-				# 2 ａｕｔｈｏｒｓ,名詞,一般,*,*,*,*,ｓ,オーサーズ,オーサーズ,1/5,C0
-				Mecab_setFeature(mf, pos - 2, ',,,*,*,*,*', CODE_=CODE_)
-				Mecab_setFeature(mf, pos - 1, ',,,*,*,*,*', CODE_=CODE_)
-				f = _makeFeatureFromLatinWordAndPostfix(ar[0], ar3, symbol=u"'")
-				Mecab_setFeature(mf, pos, f, CODE_=CODE_)
-			elif len(ar2) > 10 and RE_FULLSHAPE_ALPHA.match(ar2[0]) and len(ar2[0]) > 1:
-				# PATTERN 4
-				# before:
-				# 0 ｔａｋｅ,名詞,一般,*,*,*,*,ｔａｋｅ,テイク,テイク,1/3,C0
-				# 1 ｓ,記号,アルファベット,*,*,*,*,ｓ,エス,エス,1/2,*
-				#
-				# after:
-				# 0 ,,,*,*,*,*
-				# 1 ｔａｋｅｓ,名詞,一般,*,*,*,*,ｔａｋｅ,テイクス,テイクス,1/4,C0
-				Mecab_setFeature(mf, pos - 1, ',,,*,*,*,*', CODE_=CODE_)
-				f = _makeFeatureFromLatinWordAndPostfix(ar[0], ar2)
-				Mecab_setFeature(mf, pos, f, CODE_=CODE_)
-		elif ar2 and RE_FULLSHAPE_ALPHA.match(ar[0]) and RE_FULLSHAPE_ALPHA.match(ar2[0]):
-			# and not (len(ar2) > 10 and ar2[10] and ar2[10][0] == '0' and len(ar) > 10 and ar[10] and ar[10][0] == '0'):
-			# 0 ｓｈｉ,名詞,一般,*,*,*,*,ｓｈｉ,シ,シ,1/1,C0
-			# 1 ｍａｎｅ,名詞,一般,*,*,*,*,ｍａｎｅ,メイン,メイン,1/3,C0
-			#
-			# 0 ｋｉｔ,名詞,一般,*,*,*,*,ｋｉｔ,キットゥ,キットゥ,1/4,C0
-			# 1 ａ,記号,アルファベット,*,*,*,*,ａ,エイ,エイ,1/2,*
-			#
-			# https://github.com/nvdajp/nvdajpmiscdep/issues/58
-			# 英単語を0型アクセントで登録しているので、0型同士の場合は元の読みを使用する
-			#
-			hyoki = ar2[0] + ar[0]
-			hin1 = u'名詞'
-			hin2 = u'固有名詞'
-			yomi = getKanaFromRoma(hyoki)
-			if yomi:
-				pron = yomi
-				mora = len(yomi)
-				feature = u'{h},{h1},{h2},*,*,*,*,{h},{y},{p},0/{m},C0'.format(
-					h=hyoki, h1=hin1, h2=hin2, y=yomi, p=pron, m=mora
-				)
-				Mecab_setFeature(mf, pos-1, ',,,*,*,*,*', CODE_=CODE_)
-				Mecab_setFeature(mf, pos, feature, CODE_=CODE_)
-		elif RE_FULLSHAPE_ALPHA.match(ar[0]) and ar[7] == u'*':
-			roma = ar[0]
-			kana = getKanaFromRoma(roma)
-			if kana:
-				c = len(kana)
-				Mecab_setFeature(mf, pos, u'%s,名詞,固有名詞,*,*,*,*,%s,%s,%s,0/%d,C0' % (roma, roma, kana, kana, c), CODE_=CODE_)
-		elif len(ar[0]) == 1 and 0x2800 <= ord(ar[0]) <= 0x28ff:
-			ar[8] = ar[9] = _makeBraillePatternReading(ar[0])
-			Mecab_setFeature(mf, pos, u','.join(ar), CODE_=CODE_)
+			elif pos >= 2:
+				ar3 = Mecab_getFeature(mf, pos-2, CODE_=CODE_).split(',')
+				if len(ar3) > 10 and ar3[1] != u'記号':
+					hyoki = ar3[0] + ar2[0] + u'ー'
+					hin1 = ar3[1]
+					hin2 = ar3[2]
+					yomi = ar3[8] + ar2[0] + u'ー'
+					pron = ar3[9] + ar2[0] + u'ー'
+					mora = getMoraCount(ar3[10]) + len(ar2[0]) + 1
+					feature = u'{h},{h1},{h2},*,*,*,*,{h},{y},{p},1/{m},C0'.format(h=hyoki, h1=hin1, h2=hin2, y=yomi, p=pron, m=mora)
+					Mecab_setFeature(mf, pos-2, feature, CODE_=CODE_)
 
 def Mecab_utf8_to_cp932(mf):
 	for pos in xrange(0, mf.size):
