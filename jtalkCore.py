@@ -399,11 +399,11 @@ def libjt_synthesis(feature,
 		buf = string_at(speech_ptr, byte_count)
 		if feed_func_:
 			try:
-				feed_func_(buf, onDone=libjt_on_done)
-			except TypeError:
 				feed_func_(buf)
 			except (WindowsError, RuntimeError):
 				pass
+		if libjt_on_done:
+			libjt_on_done()
 	if logwrite_ : logwrite_('libjt_synthesis done.')
 	return buf
 
