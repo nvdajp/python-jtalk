@@ -76,7 +76,7 @@ mecab_node_t._fields_ = [
 
 ############################################
 
-FELEN   = 1000 # string len
+FELEN   = 2000 # string len
 FECOUNT = 1000
 FEATURE = c_char * FELEN
 FEATURE_ptr = POINTER(FEATURE)
