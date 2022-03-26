@@ -13,3 +13,4 @@ libopenjtalk.dll
 *.pyc
 *.jtlog
 *.wav
+venv37
