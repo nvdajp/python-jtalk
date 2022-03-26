@@ -4,15 +4,6 @@
 
 from __future__ import absolute_import
 
-import re
-import os
-import sys
-
-if sys.version_info.major >= 3:
-    xrange = range
-    encode_mbcs = lambda s: s
-else:
-    encode_mbcs = lambda s: s.encode("mbcs")
 try:
     from .mecab import *
 except (ImportError, ValueError):
@@ -281,7 +272,7 @@ def libjt_initialize(JT_DLL):
     global libjt, njd, jpcommon, engine
 
     if libjt is None:
-        libjt = cdll.LoadLibrary(encode_mbcs(JT_DLL))
+        libjt = cdll.LoadLibrary(JT_DLL)
     libjt.jt_version.restype = c_char_p
 
     # argtypes & restype
