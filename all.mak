@@ -1,5 +1,6 @@
 all:
-	nmake /f hts.mak
+	cd ..
+	nmake /f python-jtalk\hts.mak
 	cd libopenjtalk
 	cd text2mecab
 	nmake /f Makefile.mak
@@ -35,10 +36,12 @@ all:
 	nmake /f Makefile.mak
 	cd ..
 	cd ..
+	cd ..
+	cd python-jtalk
 	cd jpcommon
-	copy ..\libopenjtalk\jpcommon\*.c .
-	copy ..\libopenjtalk\jpcommon\*.h .
-	copy ..\libopenjtalk\jpcommon\Makefile.mak .
+	copy ..\..\libopenjtalk\jpcommon\*.c .
+	copy ..\..\libopenjtalk\jpcommon\*.h .
+	copy ..\..\libopenjtalk\jpcommon\Makefile.mak .
 	patch jpcommon_label.c jpcommon_label.patch
 	nmake /f Makefile.mak
 	cd ..
@@ -48,7 +51,8 @@ all:
 	copy lib\libopenjtalk.dll .
 
 clean:
-	nmake /f hts.mak clean
+	cd ..
+	nmake /f python-jtalk\hts.mak clean
 	cd libopenjtalk
 	cd text2mecab
 	nmake /f Makefile.mak clean
@@ -84,6 +88,8 @@ clean:
 	nmake /f Makefile.mak clean
 	cd ..
 	cd ..
+	cd ..
+	cd python-jtalk
 	cd jpcommon
 	del /Q *.c *.h *.orig *.obj *.lib *.mak
 	cd ..

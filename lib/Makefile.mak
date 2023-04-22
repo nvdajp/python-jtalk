@@ -9,8 +9,8 @@ CC = cl
 LINK = link
 CFLAGS = /O2 /Ob2 /Oi /Ot /Oy /GT /GL /TC 
 
-OJTDIR = ../libopenjtalk
-HTSDIR = ../htsengineapi
+OJTDIR = ../../libopenjtalk
+HTSDIR = ../../htsengineapi
 JPCOMMONDIR = ../jpcommon
 
 INCLUDES = -I$(OJTDIR)/text2mecab \
@@ -45,11 +45,11 @@ LDADD = $(OJTDIR)/text2mecab/text2mecab.lib \
            HTS_Engine_API.lib
 
 HTS_gstream_ex.c:
-	copy ..\htsengineapi\lib\HTS_gstream.c HTS_gstream_ex.c
+	copy ..\..\htsengineapi\lib\HTS_gstream.c HTS_gstream_ex.c
 	patch HTS_gstream_ex.c HTS_gstream_ex.patch
 
 HTS_engine_ex.c:
-	copy ..\htsengineapi\lib\HTS_engine.c HTS_engine_ex.c
+	copy ..\..\htsengineapi\lib\HTS_engine.c HTS_engine_ex.c
 	patch HTS_engine_ex.c HTS_engine_ex.patch
 
 libopenjtalk-timestamp.h:
