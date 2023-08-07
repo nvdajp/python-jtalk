@@ -18,6 +18,5 @@ $(HTSLIB)\hts_engine_API.lib: $(CORES)
 	$(CC) $(CFLAGS) /c $*.c /Fo$@
 
 clean:
-	del $(HTSLIB)\*.lib
-	del $(HTSLIB)\*.obj
-
+	if exist $(HTSLIB)\*.lib del /Q $(HTSLIB)\*.lib
+	if exist $(HTSLIB)\*.obj del /Q $(HTSLIB)\*.obj
