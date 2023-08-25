@@ -49,7 +49,7 @@ all:
 
 clean:
 	nmake /f hts.mak clean
-	cd libopenjtalk
+	cd ../libopenjtalk
 	cd text2mecab
 	nmake /f Makefile.mak clean
 	cd ..
@@ -84,6 +84,7 @@ clean:
 	nmake /f Makefile.mak clean
 	cd ..
 	cd ..
+	cd pytyhon-jtalk
 	cd jpcommon
 	del /Q *.c *.h *.orig *.obj *.lib *.mak
 	cd ..
