@@ -1,6 +1,0 @@
-[submodule "libopenjtalk"]
-	path = libopenjtalk
-	url = https://github.com/nishimotz/libopenjtalk.git
-[submodule "htsengineapi"]
-	path = htsengineapi
-	url = https://github.com/nishimotz/htsengineapi.git
