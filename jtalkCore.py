@@ -2,8 +2,6 @@
 # -*- coding: utf-8 -*-
 # Copyright (C) 2013-2019 Takuya Nishimoto
 
-from __future__ import absolute_import
-
 try:
     from .mecab import *
 except (ImportError, ValueError):
