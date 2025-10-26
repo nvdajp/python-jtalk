@@ -43,7 +43,7 @@ all:
 	nmake /f Makefile.mak
 	cd ..
 	cd lib
-	nmake /f Makefile.mak
+	nmake /f Makefile.mak MACHINE=$(MACHINE)
 	cd ..
 	copy lib\libopenjtalk.dll .
 
