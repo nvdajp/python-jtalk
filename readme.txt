@@ -21,6 +21,10 @@ or
 or
 > build.cmd x64         (x64 build)
 
+Build artifacts:
+- x86 DLL: `libopenjtalk.dll` (repository root)
+- x64 DLL: `x64\libopenjtalk.dll`
+
 > dir ..\nvdajp\source\synthDrivers\jtalk\dic /w
 
 [.]                   [..]                  char.bin

@@ -45,7 +45,12 @@ all:
 	cd lib
 	nmake /f Makefile.mak MACHINE=$(MACHINE)
 	cd ..
-	copy lib\libopenjtalk.dll .
+!IF "$(MACHINE)" == "x64"
+	if not exist x64 mkdir x64
+	copy /Y lib\libopenjtalk.dll x64\libopenjtalk.dll
+!ELSE
+	copy /Y lib\libopenjtalk.dll .
+!ENDIF
 
 clean:
 	nmake /f hts.mak clean
