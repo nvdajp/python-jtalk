@@ -1,3 +1,7 @@
+!IF "$(MACHINE)" == ""
+MACHINE=x86
+!ENDIF
+
 all:
 	nmake /f hts.mak
 	cd libopenjtalk
