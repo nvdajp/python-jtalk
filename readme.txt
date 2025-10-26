@@ -7,15 +7,23 @@ setup:
 
 Visual Studio 2022
 
-Python 3.11 (win32)
+Python 3.11 (win32 or amd64)
 
 > git clone https://github.com/nvdajp/python-jtalk
 > cd python-jtalk
 > git submodule sync
 > git submodule update --init --recursive
-> vcsetup.cmd
+> vcsetup.cmd           (x86 build)
+or
+> vcsetup.cmd x64       (x64 build)
 > clean.cmd
-> build.cmd
+> build.cmd             (x86 build)
+or
+> build.cmd x64         (x64 build)
+
+Build artifacts:
+- x86 DLL: `libopenjtalk.dll` (repository root)
+- x64 DLL: `x64\libopenjtalk.dll`
 
 > dir ..\nvdajp\source\synthDrivers\jtalk\dic /w
 
