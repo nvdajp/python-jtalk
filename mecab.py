@@ -181,9 +181,15 @@ def Mecab_initialize(logwrite_=None, libmecab_dir=None, dic=None, user_dics=None
 
 
 def Mecab_analysis(src, features, logwrite_=None):
+    global mecab, libmc
     if not src:
         if logwrite_:
             logwrite_("src empty")
+        features.size = 0
+        return
+    if libmc is None or mecab is None:
+        if logwrite_:
+            logwrite_("mecab not initialized: libmc=%s, mecab=%s" % (libmc, mecab))
         features.size = 0
         return
     head = libmc.mecab_sparse_tonode(mecab, src)
