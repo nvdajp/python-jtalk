@@ -131,8 +131,13 @@ def Mecab_initialize(logwrite_=None, libmecab_dir=None, dic=None, user_dics=None
     if libmc is None:
         libmc = cdll.LoadLibrary(mecab_dll)
         libmc.mecab_version.restype = c_char_p
+        libmc.mecab_version.argtypes = []
         libmc.mecab_strerror.restype = c_char_p
+        libmc.mecab_strerror.argtypes = [c_void_p]
         libmc.mecab_sparse_tonode.restype = mecab_node_t_ptr
+        libmc.mecab_sparse_tonode.argtypes = [c_void_p, c_char_p]
+        # Ensure pointers are preserved on 64-bit builds.
+        libmc.mecab_new.restype = c_void_p
         libmc.mecab_new.argtypes = [c_int, c_char_p_p]
     global mecab
     if mecab is None:

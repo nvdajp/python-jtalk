@@ -13,6 +13,7 @@ import sys
 import time
 import wave
 from os import getcwd
+from pathlib import Path
 
 try:
     import pyaudio
@@ -20,8 +21,16 @@ except:
     pyaudio = None  # type: ignore
 # import cProfile
 # import pstats
-jtalk_dir = JT_DIR = os.path.normpath(
-    os.path.join(getcwd(), "..", "source", "synthDrivers", "jtalk")
+# Prefer the repository copy of JTalk under <repo>/source/synthDrivers/jtalk.
+# Fall back to the old CWD-based heuristic if not found.
+_here = Path(__file__).resolve()
+_candidates = [
+    Path(getcwd()) / ".." / "source" / "synthDrivers" / "jtalk",
+    _here.parent.parent / "source" / "synthDrivers" / "jtalk",
+    _here.parents[2] / "source" / "synthDrivers" / "jtalk",
+]
+jtalk_dir = JT_DIR = str(
+    next((p.resolve() for p in _candidates if p and p.is_dir()), _candidates[0])
 )
 sys.path.append(JT_DIR)
 import jtalkPrepare  # type: ignore
