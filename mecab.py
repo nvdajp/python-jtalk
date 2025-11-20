@@ -137,7 +137,9 @@ def Mecab_initialize(logwrite_=None, libmecab_dir=None, dic=None, user_dics=None
                 _dll_directory_handles.append(handle)
             except FileNotFoundError:
                 if logwrite_:
-                    logwrite_(f"WARNING: add_dll_directory failed for {libmecab_dir}")
+                    logwrite_(
+                        f"WARNING: add_dll_directory failed for {libmecab_dir}"
+                    )
         try:
             libmc = cdll.LoadLibrary(mecab_dll)
         except OSError as e:
@@ -200,7 +202,7 @@ def Mecab_initialize(logwrite_=None, libmecab_dir=None, dic=None, user_dics=None
                 b"-d",
                 dic.encode("utf-8"),
                 b"-r",
-                mecabrc.encode("utf-8"),
+                mecabrc_for_use.encode("utf-8"),
                 b"-u",
                 ud.encode("utf-8"),
             )
