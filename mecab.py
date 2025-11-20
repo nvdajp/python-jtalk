@@ -88,6 +88,7 @@ FEATURE_ptr_array_ptr = POINTER(FEATURE_ptr_array)
 
 mecab = None
 libmc = None
+_dll_directory_handles = []
 lock = threading.Lock()
 
 mc_malloc = cdll.msvcrt.malloc
@@ -129,7 +130,21 @@ def Mecab_initialize(logwrite_=None, libmecab_dir=None, dic=None, user_dics=None
     mecab_dll = os.path.join(libmecab_dir, "libmecab.dll")
     global libmc
     if libmc is None:
-        libmc = cdll.LoadLibrary(mecab_dll)
+        if hasattr(os, "add_dll_directory"):
+            try:
+                handle = os.add_dll_directory(libmecab_dir)
+                _dll_directory_handles.append(handle)
+            except FileNotFoundError:
+                if logwrite_:
+                    logwrite_(
+                        f"WARNING: add_dll_directory failed for {libmecab_dir}"
+                    )
+        try:
+            libmc = cdll.LoadLibrary(mecab_dll)
+        except OSError as e:
+            if logwrite_:
+                logwrite_(f"ERROR: failed to load {mecab_dll}: {e}")
+            raise
         libmc.mecab_version.restype = c_char_p
         libmc.mecab_version.argtypes = []
         libmc.mecab_strerror.restype = c_char_p
