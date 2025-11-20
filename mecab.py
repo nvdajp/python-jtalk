@@ -3,6 +3,7 @@
 
 CODE = "utf-8"
 
+import ctypes
 import os
 import re
 import tempfile
@@ -206,13 +207,38 @@ def Mecab_initialize(logwrite_=None, libmecab_dir=None, dic=None, user_dics=None
                 b"-u",
                 ud.encode("utf-8"),
             )
+        if logwrite_:
+            argv_preview = []
+            for i in range(argc):
+                try:
+                    argv_preview.append(args[i].decode("utf-8", "ignore"))
+                except Exception:
+                    argv_preview.append(repr(args[i]))
+            logwrite_(f"mecab_new argv: {argv_preview}")
         mecab = libmc.mecab_new(argc, args)
         if logwrite_:
             if not mecab:
                 logwrite_("mecab_new failed.")
-                last_error = getattr(os, "get_last_error", lambda: None)()
+                last_error = None
+                if hasattr(ctypes, "get_last_error"):
+                    try:
+                        last_error = ctypes.get_last_error()
+                    except Exception:
+                        pass
+                if last_error is None and hasattr(os, "get_last_error"):
+                    try:
+                        last_error = os.get_last_error()
+                    except Exception:
+                        pass
                 if last_error is not None:
-                    logwrite_(f"GetLastError: {last_error}")
+                    try:
+                        err_msg = FormatError(last_error).strip()
+                    except Exception:
+                        err_msg = None
+                    if err_msg:
+                        logwrite_(f"GetLastError: {last_error} ({err_msg})")
+                    else:
+                        logwrite_(f"GetLastError: {last_error}")
             try:
                 s_raw = libmc.mecab_strerror(mecab)
                 s = s_raw.strip() if s_raw else b""
