@@ -5,6 +5,7 @@ CODE = "utf-8"
 
 import os
 import re
+import tempfile
 import threading
 from ctypes import *
 
@@ -88,6 +89,7 @@ FEATURE_ptr_array_ptr = POINTER(FEATURE_ptr_array)
 
 mecab = None
 libmc = None
+_dll_directory_handles = []
 lock = threading.Lock()
 
 mc_malloc = cdll.msvcrt.malloc
@@ -129,7 +131,19 @@ def Mecab_initialize(logwrite_=None, libmecab_dir=None, dic=None, user_dics=None
     mecab_dll = os.path.join(libmecab_dir, "libmecab.dll")
     global libmc
     if libmc is None:
-        libmc = cdll.LoadLibrary(mecab_dll)
+        if hasattr(os, "add_dll_directory"):
+            try:
+                handle = os.add_dll_directory(libmecab_dir)
+                _dll_directory_handles.append(handle)
+            except FileNotFoundError:
+                if logwrite_:
+                    logwrite_(f"WARNING: add_dll_directory failed for {libmecab_dir}")
+        try:
+            libmc = cdll.LoadLibrary(mecab_dll)
+        except OSError as e:
+            if logwrite_:
+                logwrite_(f"ERROR: failed to load {mecab_dll}: {e}")
+            raise
         libmc.mecab_version.restype = c_char_p
         libmc.mecab_version.argtypes = []
         libmc.mecab_strerror.restype = c_char_p
@@ -154,8 +168,27 @@ def Mecab_initialize(logwrite_=None, libmecab_dir=None, dic=None, user_dics=None
         except:
             pass
         mecabrc = os.path.join(libmecab_dir, "mecabrc")
+        mecabrc_for_use = mecabrc
+        if not os.path.isfile(mecabrc) or os.path.getsize(mecabrc) == 0:
+            tmp = tempfile.NamedTemporaryFile(
+                mode="w", encoding="utf-8", delete=False, suffix="mecabrc"
+            )
+            tmp.write(f"dicdir = {dic}\n")
+            tmp.write("input-buffer-size = 8192\n")
+            tmp.close()
+            mecabrc_for_use = tmp.name
+            if logwrite_:
+                logwrite_(f"auto-generated mecabrc: {mecabrc_for_use}")
+        if logwrite_ and mecabrc_for_use != mecabrc:
+            logwrite_(
+                f"WARNING: bundled mecabrc missing/empty; using temp config at {mecabrc_for_use}"
+            )
         argc, args = 5, (c_char_p * 5)(
-            b"mecab", b"-d", dic.encode("utf-8"), b"-r", mecabrc.encode("utf-8")
+            b"mecab",
+            b"-d",
+            dic.encode("utf-8"),
+            b"-r",
+            mecabrc_for_use.encode("utf-8"),
         )
         if user_dics:
             # ignore item which contains comma
@@ -175,9 +208,22 @@ def Mecab_initialize(logwrite_=None, libmecab_dir=None, dic=None, user_dics=None
         if logwrite_:
             if not mecab:
                 logwrite_("mecab_new failed.")
-            s = libmc.mecab_strerror(mecab).strip()
-            if s:
-                logwrite_(s)
+                last_error = getattr(os, "get_last_error", lambda: None)()
+                if last_error is not None:
+                    logwrite_(f"GetLastError: {last_error}")
+            try:
+                s_raw = libmc.mecab_strerror(mecab)
+                s = s_raw.strip() if s_raw else b""
+                if s:
+                    try:
+                        logwrite_(s.decode(CODE, "ignore"))
+                    except Exception:
+                        logwrite_(repr(s))
+                elif logwrite_:
+                    logwrite_("mecab_strerror returned empty.")
+            except Exception as e:
+                if logwrite_:
+                    logwrite_(f"mecab_strerror raised: {e}")
 
 
 def Mecab_analysis(src, features, logwrite_=None):
