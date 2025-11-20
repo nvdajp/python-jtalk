@@ -186,6 +186,23 @@ def Mecab_initialize(logwrite_=None, libmecab_dir=None, dic=None, user_dics=None
             logwrite_(
                 f"WARNING: bundled mecabrc missing/empty; using temp config at {mecabrc_for_use}"
             )
+        if logwrite_:
+            try:
+                with open(mecabrc_for_use, encoding="utf-8", errors="ignore") as fh:
+                    logwrite_(f"mecabrc ({mecabrc_for_use}) contents:")
+                    for line in fh:
+                        logwrite_(line.strip())
+            except Exception as e:
+                logwrite_(f"failed to read mecabrc {mecabrc_for_use}: {e}")
+            logwrite_(f"cwd: {os.getcwd()}")
+            logwrite_(f"PATH: {os.environ.get('PATH','')}")
+            logwrite_(f"dic files: {os.listdir(dic) if os.path.isdir(dic) else '<missing>'}")
+            dv = os.path.join(dic, "DIC_VERSION")
+            if os.path.isfile(dv):
+                try:
+                    logwrite_(f"DIC_VERSION: {open(dv, encoding='utf-8', errors='ignore').read().strip()}")
+                except Exception as e:
+                    logwrite_(f"failed to read DIC_VERSION: {e}")
         argc, args = 5, (c_char_p * 5)(
             b"mecab",
             b"-d",
