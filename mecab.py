@@ -130,6 +130,7 @@ class MecabFeatures(NonblockingMecabFeatures):
 
 def Mecab_initialize(logwrite_=None, libmecab_dir=None, dic=None, user_dics=None):
     mecab_dll = os.path.join(libmecab_dir, "libmecab.dll")
+    dic_for_mecab = dic.replace("\\", "/") if dic else dic
     global libmc
     if libmc is None:
         if hasattr(os, "add_dll_directory"):
@@ -176,7 +177,7 @@ def Mecab_initialize(logwrite_=None, libmecab_dir=None, dic=None, user_dics=None
             tmp = tempfile.NamedTemporaryFile(
                 mode="w", encoding="utf-8", delete=False, suffix="mecabrc"
             )
-            tmp.write(f"dicdir = {dic}\n")
+            tmp.write(f"dicdir = {dic_for_mecab}\n")
             tmp.write("input-buffer-size = 8192\n")
             tmp.close()
             mecabrc_for_use = tmp.name
@@ -206,7 +207,7 @@ def Mecab_initialize(logwrite_=None, libmecab_dir=None, dic=None, user_dics=None
         argc, args = 5, (c_char_p * 5)(
             b"mecab",
             b"-d",
-            dic.encode("utf-8"),
+            dic_for_mecab.encode("utf-8"),
             b"-r",
             mecabrc_for_use.encode("utf-8"),
         )
@@ -218,7 +219,7 @@ def Mecab_initialize(logwrite_=None, libmecab_dir=None, dic=None, user_dics=None
             argc, args = 7, (c_char_p * 7)(
                 b"mecab",
                 b"-d",
-                dic.encode("utf-8"),
+                dic_for_mecab.encode("utf-8"),
                 b"-r",
                 mecabrc_for_use.encode("utf-8"),
                 b"-u",
@@ -236,6 +237,15 @@ def Mecab_initialize(logwrite_=None, libmecab_dir=None, dic=None, user_dics=None
         if logwrite_:
             if not mecab:
                 logwrite_("mecab_new failed.")
+                for name in ("sys.dic", "matrix.bin", "char.bin", "unk.dic"):
+                    fp = os.path.join(dic, name) if dic else None
+                    if fp and os.path.isfile(fp):
+                        try:
+                            logwrite_(f"{name} size: {os.path.getsize(fp)}")
+                        except Exception as e:
+                            logwrite_(f"{name} size: failed to stat ({e})")
+                    else:
+                        logwrite_(f"{name} missing")
                 last_error = None
                 if hasattr(ctypes, "get_last_error"):
                     try:
