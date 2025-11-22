@@ -8,9 +8,9 @@ all:
 	cd text2mecab
 	nmake /f Makefile.mak MACHINE=$(MACHINE)
 	cd ..
-	rem cd mecab
-	rem nmake /f Makefile.mak
-	rem cd ..
+	cd mecab
+	nmake /f Makefile.mak
+	cd ..
 	cd mecab2njd
 	nmake /f Makefile.mak MACHINE=$(MACHINE)
 	cd ..
