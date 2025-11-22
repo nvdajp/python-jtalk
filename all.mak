@@ -9,7 +9,7 @@ all:
 	nmake /f Makefile.mak MACHINE=$(MACHINE)
 	cd ..
 	cd mecab
-	nmake /f Makefile.mak
+	nmake /f Makefile.mak MACHINE=$(MACHINE)
 	cd ..
 	cd mecab2njd
 	nmake /f Makefile.mak MACHINE=$(MACHINE)
