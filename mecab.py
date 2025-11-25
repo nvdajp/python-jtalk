@@ -92,6 +92,11 @@ mecab = None
 libmc = None
 _dll_directory_handles = []
 lock = threading.Lock()
+# Store initialization parameters for re-initialization on access violation
+_mecab_init_params = None
+_mecab_reinit_lock = threading.Lock()
+_mecab_reinit_count = 0
+_MAX_REINIT_ATTEMPTS = 3
 
 mc_malloc = cdll.msvcrt.malloc
 mc_malloc.restype = POINTER(c_ubyte)
@@ -117,21 +122,31 @@ class NonblockingMecabFeatures(object):
 
 
 class MecabFeatures(NonblockingMecabFeatures):
+    """MecabFeatures with thread-safe analysis support.
+    
+    Note: The lock is now acquired in Mecab_analysis() instead of here
+    to ensure thread-safety for all MeCab operations, including when
+    NonblockingMecabFeatures is used directly.
+    """
     def __init__(self):
-        global lock
-        lock.acquire()
         super(MecabFeatures, self).__init__()
 
     def __del__(self):
-        global lock
         super(MecabFeatures, self).__del__()
-        lock.release()
 
 
 def Mecab_initialize(logwrite_=None, libmecab_dir=None, dic=None, user_dics=None):
     mecab_dll = os.path.join(libmecab_dir, "libmecab.dll")
     dic_for_mecab = dic.replace("\\", "/") if dic else dic
-    global libmc
+    global libmc, _mecab_init_params, _mecab_reinit_count
+    # Store initialization parameters for potential re-initialization
+    _mecab_init_params = {
+        'logwrite_': logwrite_,
+        'libmecab_dir': libmecab_dir,
+        'dic': dic,
+        'user_dics': user_dics
+    }
+    _mecab_reinit_count = 0  # Reset reinit counter on successful initialization
     if libmc is None:
         if hasattr(os, "add_dll_directory"):
             try:
@@ -233,7 +248,9 @@ def Mecab_initialize(logwrite_=None, libmecab_dir=None, dic=None, user_dics=None
                 except Exception:
                     argv_preview.append(repr(args[i]))
             logwrite_(f"mecab_new argv: {argv_preview}")
-        mecab = libmc.mecab_new(argc, args)
+        mecab_raw = libmc.mecab_new(argc, args)
+        # Ensure mecab is properly typed as c_void_p
+        mecab = c_void_p(mecab_raw) if mecab_raw else None
         if logwrite_:
             if not mecab:
                 logwrite_("mecab_new failed.")
@@ -266,63 +283,138 @@ def Mecab_initialize(logwrite_=None, libmecab_dir=None, dic=None, user_dics=None
                         logwrite_(f"GetLastError: {last_error} ({err_msg})")
                     else:
                         logwrite_(f"GetLastError: {last_error}")
-            try:
-                s_raw = libmc.mecab_strerror(mecab)
-                s = s_raw.strip() if s_raw else b""
-                if s:
-                    try:
-                        logwrite_(s.decode(CODE, "ignore"))
-                    except Exception:
-                        logwrite_(repr(s))
-                elif logwrite_:
-                    logwrite_("mecab_strerror returned empty.")
-            except Exception as e:
+            else:
+                # mecab_new succeeded
+                # Note: mecab_strerror is not called here to avoid access violations
+                # in multi-threaded environments. mecab_strerror is not thread-safe
+                # and can cause access violations even with valid mecab pointers.
                 if logwrite_:
-                    logwrite_(f"mecab_strerror raised: {e}")
+                    logwrite_("mecab_new succeeded.")
+        # If mecab_new failed, reset mecab to None
+        if not mecab:
+            mecab = None
 
 
 def Mecab_analysis(src, features, logwrite_=None):
-    global mecab, libmc
-    if not src:
-        if logwrite_:
-            logwrite_("src empty")
-        features.size = 0
-        return
-    if libmc is None or mecab is None:
-        if logwrite_:
-            logwrite_("mecab not initialized: libmc=%s, mecab=%s" % (libmc, mecab))
-        features.size = 0
-        return
-    head = libmc.mecab_sparse_tonode(mecab, src)
-    if head is None:
-        if logwrite_:
-            logwrite_("mecab_sparse_tonode result empty")
-        features.size = 0
-        return
-    features.size = 0
-
-    # make array of features
-    node = head
-    i = 0
-    while node:
-        s = node[0].stat
-        if s != MECAB_BOS_NODE and s != MECAB_EOS_NODE:
-            c = node[0].length
-            s = string_at(node[0].surface, c) + b"," + string_at(node[0].feature)
+    """Analyze text using MeCab with thread-safety protection.
+    
+    This function is protected by a global lock to prevent concurrent
+    access to MeCab, which is not thread-safe when built with
+    MECAB_WITHOUT_MUTEX_LOCK.
+    """
+    global mecab, libmc, _mecab_init_params, _mecab_reinit_lock, _mecab_reinit_count, _MAX_REINIT_ATTEMPTS, lock
+    # Acquire lock to prevent concurrent access to MeCab (not thread-safe)
+    with lock:
+        if not src:
             if logwrite_:
-                logwrite_(s.decode(CODE, "ignore"))
-            buf = create_string_buffer(s)
-            dst_ptr = features.feature[i]
-            src_ptr = byref(buf)
-            memmove(dst_ptr, src_ptr, len(s) + 1)
-            i += 1
-        node = node[0].next
-        features.size = i
-        if i >= FECOUNT:
-            if logwrite_:
-                logwrite_("too many nodes")
+                logwrite_("src empty")
+            features.size = 0
             return
-    return
+        if libmc is None or mecab is None:
+            if logwrite_:
+                logwrite_("mecab not initialized: libmc=%s, mecab=%s" % (libmc, mecab))
+            features.size = 0
+            return
+        # Ensure mecab is properly typed as c_void_p for mecab_sparse_tonode
+        mecab_void_p = c_void_p(mecab) if not isinstance(mecab, c_void_p) else mecab
+        try:
+            head = libmc.mecab_sparse_tonode(mecab_void_p, src)
+        except (OSError, ValueError) as e:
+            # Access violation or invalid pointer - reset mecab to None and try re-initialization
+            if logwrite_:
+                logwrite_("mecab_sparse_tonode failed: %s" % e)
+            
+            # Use lock to prevent multiple threads from re-initializing simultaneously
+            with _mecab_reinit_lock:
+                mecab = None
+                # Try to re-initialize if we have stored parameters and haven't exceeded max attempts
+                if _mecab_init_params and _mecab_reinit_count < _MAX_REINIT_ATTEMPTS:
+                    _mecab_reinit_count += 1
+                    if logwrite_:
+                        logwrite_("Attempting to re-initialize MeCab (attempt %d/%d)" % (_mecab_reinit_count, _MAX_REINIT_ATTEMPTS))
+                    try:
+                        Mecab_initialize(
+                            _mecab_init_params['logwrite_'],
+                            _mecab_init_params['libmecab_dir'],
+                            _mecab_init_params['dic'],
+                            _mecab_init_params['user_dics']
+                        )
+                        if logwrite_:
+                            logwrite_("MeCab re-initialization succeeded")
+                        # Retry the analysis after successful re-initialization
+                        if mecab is not None:
+                            mecab_void_p = c_void_p(mecab) if not isinstance(mecab, c_void_p) else mecab
+                            try:
+                                head = libmc.mecab_sparse_tonode(mecab_void_p, src)
+                                # If successful, continue with normal processing
+                                if head is not None:
+                                    # Reset reinit counter on success
+                                    _mecab_reinit_count = 0
+                                    # Continue with normal processing (fall through to feature extraction)
+                                else:
+                                    if logwrite_:
+                                        logwrite_("mecab_sparse_tonode result empty after re-init")
+                                    features.size = 0
+                                    return
+                            except (OSError, ValueError) as e2:
+                                if logwrite_:
+                                    logwrite_("mecab_sparse_tonode failed again after re-init: %s" % e2)
+                                features.size = 0
+                                return
+                        else:
+                            if logwrite_:
+                                logwrite_("MeCab re-initialization failed: mecab is None")
+                            features.size = 0
+                            return
+                    except Exception as e_init:
+                        if logwrite_:
+                            logwrite_("MeCab re-initialization raised exception: %s" % e_init)
+                        features.size = 0
+                        return
+                else:
+                    if logwrite_:
+                        if not _mecab_init_params:
+                            logwrite_("Cannot re-initialize: no stored initialization parameters")
+                        else:
+                            logwrite_("Cannot re-initialize: max attempts (%d) exceeded" % _MAX_REINIT_ATTEMPTS)
+                    features.size = 0
+                    return
+        
+            # If we reach here after re-initialization, head should be set
+            # If not, return early
+            if 'head' not in locals() or head is None:
+                features.size = 0
+                return
+        
+        if head is None:
+            if logwrite_:
+                logwrite_("mecab_sparse_tonode result empty")
+            features.size = 0
+            return
+        features.size = 0
+
+        # make array of features
+        node = head
+        i = 0
+        while node:
+            s = node[0].stat
+            if s != MECAB_BOS_NODE and s != MECAB_EOS_NODE:
+                c = node[0].length
+                s = string_at(node[0].surface, c) + b"," + string_at(node[0].feature)
+                if logwrite_:
+                    logwrite_(s.decode(CODE, "ignore"))
+                buf = create_string_buffer(s)
+                dst_ptr = features.feature[i]
+                src_ptr = byref(buf)
+                memmove(dst_ptr, src_ptr, len(s) + 1)
+                i += 1
+            node = node[0].next
+            features.size = i
+            if i >= FECOUNT:
+                if logwrite_:
+                    logwrite_("too many nodes")
+                return
+        return
 
 
 # for debug
