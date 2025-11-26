@@ -44,6 +44,7 @@ all:
 	copy ..\libopenjtalk\jpcommon\*.h .
 	copy ..\libopenjtalk\jpcommon\Makefile.mak .
 	patch jpcommon_label.c jpcommon_label.patch
+	nmake /f Makefile.mak clean MACHINE=$(MACHINE)
 	nmake /f Makefile.mak MACHINE=$(MACHINE)
 	cd ..
 	cd lib
@@ -56,7 +57,7 @@ all:
 	copy /Y lib\libopenjtalk.dll .
 !ENDIF
 
-clean:
+clean_all:
 	nmake /f hts.mak clean MACHINE=$(MACHINE)
 	cd libopenjtalk
 	cd text2mecab
@@ -94,8 +95,10 @@ clean:
 	cd ..
 	cd ..
 	cd jpcommon
-	del /Q *.c *.h *.orig *.obj *.lib *.mak
+	del /Q *.c *.h *.orig *.obj *.lib *.mak 2>nul
 	cd ..
 	cd lib
 	nmake /f Makefile.mak clean MACHINE=$(MACHINE)
 	cd ..
+
+clean: clean_all
