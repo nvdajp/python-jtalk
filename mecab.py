@@ -72,10 +72,16 @@ mecab_node_t._fields_ = [
     ("char_type", c_ubyte),
     ("stat", c_ubyte),
     ("isbest", c_ubyte),
+    # Explicit padding to match actual C structure layout (x64)
+    # isbest ends at offset 81, alpha starts at offset 84 (3 bytes padding)
+    ("_padding1", c_ubyte * 3),
     ("alpha", c_float),
     ("beta", c_float),
     ("prob", c_float),
     ("wcost", c_short),
+    # Explicit padding to match actual C structure layout (x64)
+    # wcost ends at offset 98, cost starts at offset 100 (2 bytes padding)
+    ("_padding2", c_ubyte * 2),
     ("cost", c_long),
 ]
 
